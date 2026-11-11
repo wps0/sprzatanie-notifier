@@ -1,0 +1,9 @@
+{
+  "name": "sprzatanie-notifier",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  }
+}
