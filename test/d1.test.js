@@ -14,14 +14,16 @@ test('the D1 stand-in applies migrations and mimics the D1 calls the Worker uses
   assert.equal(await db.prepare('SELECT value FROM meta WHERE key = ?').bind('nope').first(), null);
 
   const [, rows] = await db.batch([
-    db.prepare('INSERT INTO done (week_start, task_key, done_by, done_at) VALUES (?, ?, ?, ?)').bind('2026-11-09', 'kuchnia', 'Ala', 5),
-    db.prepare('SELECT week_start, task_key, done_by FROM done'),
+    db.prepare('INSERT INTO task_status (week_start, task_key, status, updated_by, updated_at) VALUES (?, ?, ?, ?, ?)').bind('2026-11-09', 'kuchnia', 'done', 'Ala', 5),
+    db.prepare('SELECT week_start, task_key, status, updated_by FROM task_status'),
   ]);
-  assert.deepEqual(rows.results, [{ week_start: '2026-11-09', task_key: 'kuchnia', done_by: 'Ala' }]);
+  assert.deepEqual(rows.results, [{ week_start: '2026-11-09', task_key: 'kuchnia', status: 'done', updated_by: 'Ala' }]);
+
+  await assert.rejects(db.prepare("INSERT INTO task_status VALUES ('2026-11-09', 'smieci', 'pending', 'Ala', 1)").run(), /CHECK/, 'only non-pending statuses are stored');
 
   await assert.rejects(db.batch([
-    db.prepare('DELETE FROM done'),
+    db.prepare('DELETE FROM task_status'),
     db.prepare('INSERT INTO no_such_table VALUES (1)'),
   ]));
-  assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM done').first()).n, 1, 'failed batch rolls back');
+  assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM task_status').first()).n, 1, 'failed batch rolls back');
 });

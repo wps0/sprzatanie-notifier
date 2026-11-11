@@ -5,13 +5,16 @@ Plan dzieli pracę na kamienie milowe M1–M6 — realizuj je po kolei, jeden na
 
 Zasady, których nie wolno łamać (pełna lista: `docs/IMPLEMENTATION_PLAN.md` §0):
 
-- Zero zależności w `src/` i `public/`. Jedyna zależność deweloperska to `wrangler`.
+- Jak najmniej zależności: dozwolone są tylko `wrangler`, `http_ece` (testy) i `@picocss/pico`
+  (CSS w `public/vendor/`). Kod w `src/` nie importuje paczek npm; nic z CDN. Kolejna
+  zależność wymaga zgody właściciela.
+- Nazwy w kodzie, API i adresach po angielsku i opisowo; po polsku tylko teksty dla użytkownika.
 - Nie przepisuj istniejących modułów w `src/core/` — są zweryfikowane.
 - Żadnych prawdziwych imion, adresu arkusza, kodu mieszkania ani kluczy w repozytorium.
 - Dane z arkusza trafiają na stronę wyłącznie przez `textContent`.
 - Każde zdarzenie `push` pokazuje powiadomienie. Telefon nie robi nic w tle.
 
-Testy: `npm test` (Node ≥ 22.13). Muszą przechodzić przed każdym commitem.
+Testy: `npm ci`, potem `npm test` (Node ≥ 22.13). Muszą przechodzić przed każdym commitem.
 
 Czego nie da się zrobić bez właściciela: wdrożenia na Cloudflare i testu powiadomień na
 prawdziwym telefonie. Gdy do tego dojdziesz, zatrzymaj się i podaj mu dokładne kroki.

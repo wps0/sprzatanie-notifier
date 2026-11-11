@@ -2,7 +2,7 @@
 // Cron Triggers run in UTC; reminder rules are expressed in local time, so every
 // "what day/time is it for the flat?" question goes through localParts().
 
-const DOW = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+const WEEKDAYS = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
 const formatters = new Map();
 
 function formatter(timeZone) {
@@ -15,12 +15,12 @@ function formatter(timeZone) {
 }
 
 /**
- * @returns {{ date: string, dow: number, time: string }}
+ * @returns {{ date: string, weekday: number, time: string }}
  *   local calendar date "YYYY-MM-DD", ISO weekday (Mon=1 .. Sun=7) and "HH:MM" (00:00 .. 23:59)
  */
 export function localParts(epochMs, timeZone = 'Europe/Warsaw') {
   const p = Object.fromEntries(formatter(timeZone).formatToParts(new Date(epochMs)).map((x) => [x.type, x.value]));
-  return { date: `${p.year}-${p.month}-${p.day}`, dow: DOW[p.weekday], time: `${p.hour}:${p.minute}` };
+  return { date: `${p.year}-${p.month}-${p.day}`, weekday: WEEKDAYS[p.weekday], time: `${p.hour}:${p.minute}` };
 }
 
 export const SLOT_MS = 15 * 60 * 1000;

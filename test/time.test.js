@@ -5,11 +5,11 @@ import { localParts, slotsBetween, isoWeekday, SLOT_MS } from '../src/core/time.
 const at = (iso) => Date.parse(iso);
 
 test('localParts converts UTC instants to Warsaw wall-clock time', () => {
-  assert.deepEqual(localParts(at('2026-11-11T20:00:00Z')), { date: '2026-11-11', dow: 3, time: '21:00' }); // CET, UTC+1
-  assert.deepEqual(localParts(at('2027-07-01T22:30:00Z')), { date: '2027-07-02', dow: 5, time: '00:30' }); // CEST, UTC+2, past midnight
-  assert.deepEqual(localParts(at('2026-11-15T22:59:00Z')), { date: '2026-11-15', dow: 7, time: '23:59' }); // Sunday is 7
-  assert.deepEqual(localParts(at('2026-11-15T23:00:00Z')), { date: '2026-11-16', dow: 1, time: '00:00' }); // never "24:00"
-  assert.deepEqual(localParts(at('2026-11-11T20:00:00Z'), 'UTC'), { date: '2026-11-11', dow: 3, time: '20:00' });
+  assert.deepEqual(localParts(at('2026-11-11T20:00:00Z')), { date: '2026-11-11', weekday: 3, time: '21:00' }); // CET, UTC+1
+  assert.deepEqual(localParts(at('2027-07-01T22:30:00Z')), { date: '2027-07-02', weekday: 5, time: '00:30' }); // CEST, UTC+2, past midnight
+  assert.deepEqual(localParts(at('2026-11-15T22:59:00Z')), { date: '2026-11-15', weekday: 7, time: '23:59' }); // Sunday is 7
+  assert.deepEqual(localParts(at('2026-11-15T23:00:00Z')), { date: '2026-11-16', weekday: 1, time: '00:00' }); // never "24:00"
+  assert.deepEqual(localParts(at('2026-11-11T20:00:00Z'), 'UTC'), { date: '2026-11-11', weekday: 3, time: '20:00' });
 });
 
 test('localParts across daylight-saving changes', () => {
@@ -17,8 +17,8 @@ test('localParts across daylight-saving changes', () => {
   assert.equal(localParts(at('2027-03-28T00:45:00Z')).time, '01:45');
   assert.equal(localParts(at('2027-03-28T01:00:00Z')).time, '03:00');
   // Fall back, 2027-10-31: 02:30 happens twice (the reminder dedupe key absorbs this).
-  assert.deepEqual(localParts(at('2027-10-31T00:30:00Z')), { date: '2027-10-31', dow: 7, time: '02:30' });
-  assert.deepEqual(localParts(at('2027-10-31T01:30:00Z')), { date: '2027-10-31', dow: 7, time: '02:30' });
+  assert.deepEqual(localParts(at('2027-10-31T00:30:00Z')), { date: '2027-10-31', weekday: 7, time: '02:30' });
+  assert.deepEqual(localParts(at('2027-10-31T01:30:00Z')), { date: '2027-10-31', weekday: 7, time: '02:30' });
 });
 
 test('slotsBetween lists 15-minute grid instants in (from, to]', () => {

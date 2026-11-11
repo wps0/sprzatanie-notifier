@@ -2,8 +2,15 @@
   "name": "sprzatanie-notifier",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.13" },
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test \"test/*.test.js\"",
+    "vendor": "node scripts/vendor.js"
+  },
+  "devDependencies": {
+    "@picocss/pico": "2.1.1",
+    "http_ece": "1.2.1"
   }
 }

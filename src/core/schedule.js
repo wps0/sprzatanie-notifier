@@ -43,7 +43,7 @@ function parseTaskHeader(text, col) {
   const m = /^(.*?)\s*\((.*)\)\s*$/.exec(header);
   const title = clean(m ? m[1] : header);
   const free = /^\?+$/.test(title) || norm(title) === 'wolne';
-  return { key: free ? `wolne-${col}` : slugify(title) || `kolumna-${col}`, title: free ? 'Wolne' : title, details: m ? clean(m[2]) : '', free };
+  return { key: free ? `free-${col}` : slugify(title) || `column-${col}`, title: free ? 'Wolne' : title, details: m ? clean(m[2]) : '', free };
 }
 
 /**

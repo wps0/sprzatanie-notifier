@@ -19,7 +19,7 @@ test('reads the real-world workbook layout', async () => {
     ['lazienka', 'łazienka', false],
     ['kuchnia', 'kuchnia', false],
     ['korytarz-z-butami-ew-tez-z-chodnikiem', 'korytarz z butami, ew też z chodnikiem', false],
-    ['wolne-6', 'Wolne', true],
+    ['free-6', 'Wolne', true],
   ]);
   assert.equal(schedule.tasks[1].details, 'odkurzyć podłogę, przemyć półkę pod lustrem i umywalkę');
   assert.deepEqual(schedule.people, ['Ala', 'Bartek', 'Celina', 'Darek', 'Ewa']);
@@ -87,7 +87,7 @@ test('buildSchedule copes with a shifted table, a missing end column and gaps', 
     row(6, [null, 'suma', 'x']),
     row(7, [null, 46321, 'Ola']),
   ]);
-  assert.deepEqual(schedule.tasks.map((t) => [t.key, t.free]), [['kuchnia', false], ['wolne-3', true]]);
+  assert.deepEqual(schedule.tasks.map((t) => [t.key, t.free]), [['kuchnia', false], ['free-3', true]]);
   assert.deepEqual(schedule.weeks, [
     { start: '2026-10-26', end: '2026-11-01', assignees: ['Ola', null] },
     { start: '2026-11-02', end: '2026-11-08', assignees: ['Ala', 'Ola'] },

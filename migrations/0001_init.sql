@@ -24,12 +24,15 @@ CREATE TABLE prefs (
   updated_at INTEGER NOT NULL
 );
 
--- A task ticked off for a given week.
-CREATE TABLE done (
+-- Status of a task in a given week. No row means "pending" (reminders are sent).
+-- "acknowledged" (I know, stop reminding me) and "done" both silence reminders;
+-- they differ only in what the others see.
+CREATE TABLE task_status (
   week_start TEXT NOT NULL,
   task_key   TEXT NOT NULL,
-  done_by    TEXT NOT NULL,
-  done_at    INTEGER NOT NULL,
+  status     TEXT NOT NULL CHECK (status IN ('acknowledged', 'done')),
+  updated_by TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
   PRIMARY KEY (week_start, task_key)
 );
 

@@ -14,13 +14,13 @@ jest w [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 | Forma | PWA instalowana z przeglądarki. Bez sklepów z aplikacjami. |
 | Telefony | Nieznane → projekt musi działać na Androidzie i iPhonie (iOS 16.4+). |
 | Kanał | Wyłącznie powiadomienia push w PWA. |
-| Zakres | Przypomnienia + przycisk „Zrobione": po odhaczeniu przypomnienia z tego tygodnia milkną, reszta widzi status. |
+| Zakres | Przypomnienia + stan zadania widoczny dla wszystkich: *do zrobienia* (przypomnienia idą), *przyjęte* (pamiętam, nie przypominaj) i *zrobione*. |
 | Pory | Domyślnie pon 9:00, sob 11:00, ndz 18:00 (czas polski); każdy może zmienić u siebie. |
 | Kolumna `???` | Oznacza wolne: widoczna w grafiku, bez przypomnień. |
 | Kolumny J–N arkusza | Ignorowane. |
 | Dostęp | Tajny kod mieszkania w linku zaproszenia; potem wybór imienia z listy, bez haseł. |
 | Bateria | Minimalne zużycie; grafik może być odświeżany rzadko. |
-| Zaufanie | Minimalny łańcuch dostaw: brak zależności w kodzie, który trafia na telefony i serwer. |
+| Zaufanie | Jak najmniej zależności, każda znana i przypięta do wersji; nic ładowanego z CDN. Kryptografia sprawdzona względem uznanej implementacji. |
 | Koszt | 0 zł — darmowy plan Cloudflare. |
 | Podgląd arkusza | Tak: tabela w aplikacji + link do oryginału. |
 
@@ -90,39 +90,78 @@ SharePointa: moduł pobierający ręcznie podąża za przekierowaniami i przenos
 zadziała też z bezpośrednim linkiem do pliku `.xlsx` z innego źródła (np. eksport z Google Sheets —
 nietestowane). Reszta systemu widzi tylko gotowy model grafiku (§4), nie arkusz.
 
-### 5. Parser XLSX: własny, bez zależności
+### 5. Parser XLSX: własny
 
 Plik XLSX to ZIP z XML‑em. Potrzebujemy wyłącznie wartości komórek pierwszego arkusza, więc
-wystarcza ok. 130 linii na standardowych API (`DecompressionStream`, wyrażenia regularne).
+wystarcza ok. 140 linii na standardowych API (`DecompressionStream`, wyrażenia regularne).
 Alternatywa — SheetJS — to duża zależność, której wersja w npm jest od lat nieaktualizowana.
-Parser jest napisany i przetestowany na prawdziwym pliku.
+Parser jest napisany i przetestowany na prawdziwym pliku. Jego błąd nie jest groźny:
+nieczytelny arkusz nigdy nie nadpisuje ostatniej dobrej wersji grafiku.
 
-### 6. Web Push: własna implementacja na WebCrypto
+### 6. Web Push: własny moduł na WebCrypto, sprawdzany względem implementacji referencyjnej
 
-Szyfrowanie wiadomości (RFC 8291) i podpis VAPID (RFC 8292) to ok. 120 linii na wbudowanym
-WebCrypto. Implementacja odtwarza przykład z RFC 8291 bajt w bajt. Zero paczek npm na serwerze.
+| Opcja | Ocena |
+|---|---|
+| Paczka `web-push` na serwerze | Najbardziej znana, ale napisana pod Node (`node:crypto`, `node:https`). Na Workers wymagałaby warstwy zgodności z Node i wnosi kilkanaście paczek pośrednich na serwer. Zamienia ryzyko, które da się zdjąć testem, na nieprzetestowane ryzyko uruchomieniowe. |
+| Mała paczka pisana pod Workers | Ten sam rodzaj kodu co nasz (kilkaset linii na WebCrypto), tylko cudzy, mało znany i z własnym łańcuchem dostaw. |
+| **Własny moduł + testy zgodności (wybrane)** | 117 linii. Nie implementuje żadnego algorytmu kryptograficznego — składa gotowe prymitywy WebCrypto (ECDH, HKDF, AES‑GCM, ECDSA) w kolejności opisanej w RFC 8291 i RFC 8292. |
+
+Ryzyko błędu zdejmują testy, nie zaufanie do autora:
+
+- moduł odtwarza przykład z RFC 8291 bajt w bajt;
+- dla losowych kluczy, soli i treści daje **wynik identyczny co do bajta** z `http_ece` —
+  implementacją referencyjną autora tego RFC i silnikiem szyfrującym paczki `web-push`;
+- `http_ece` odszyfrowuje nasze wiadomości i odrzuca zmodyfikowane;
+- podpis VAPID weryfikuje się niezależną ścieżką (natywne ECDSA zamiast WebCrypto).
+
+`http_ece` jest zależnością wyłącznie testową, bez zależności pośrednich, i nie trafia na serwer.
+Najgorszy skutek ewentualnego błędu to niedostarczone powiadomienie, widoczne przy pierwszym
+teście na telefonie; treść („łazienka — termin mija jutro") nie jest wrażliwa. Gdyby mimo to
+trzeba było przejść na gotową paczkę, zmiana dotyczy jednej funkcji (`sendPush` w `src/core/webpush.js`).
 
 ### 7. Tożsamość: kod mieszkania + wybór imienia
 
-Link zaproszenia `https://…/?k=KOD` (np. jako QR na lodówce). API bez kodu nie zwraca nic.
+Link zaproszenia `https://…/?code=KOD` (np. jako QR na lodówce). API bez kodu nie zwraca nic.
 Każdy wybiera imię z listy z arkusza. Kto zna kod, może odhaczyć też cudze zadanie — aplikacja
 zapisuje, kto to zrobił. Świadomie nie ma kont ani haseł: to pięć osób, które sobie ufają.
 
-### 8. „Zrobione": w bazie aplikacji
+### 8. Stan zadania: trzy stany, w bazie aplikacji
 
-Zapis do Excela wymagałby logowania do Microsoft Graph. Stan odhaczeń żyje więc w D1,
-a arkusz pozostaje tylko do odczytu.
+| Stan w kodzie | W aplikacji | Przypomnienia | Znaczenie |
+|---|---|---|---|
+| `pending` | Do zrobienia | wysyłane | stan domyślny |
+| `acknowledged` | Przyjęte | wyciszone | „pamiętam, zrobię — nie przypominaj" |
+| `done` | Zrobione | wyciszone | zrobione |
 
-### 9. Frontend: czysty JavaScript, bez frameworka i bez kroku budowania
+`acknowledged` i `done` działają technicznie tak samo: wyciszają przypomnienia z danego
+tygodnia. Różnią się tylko tym, co widzą pozostali. Każdy stan można cofnąć do `pending`,
+co przywraca przypomnienia. Zapis do Excela wymagałby logowania do Microsoft Graph, więc
+stan żyje w D1, a arkusz pozostaje tylko do odczytu.
 
-Cztery ekrany nie uzasadniają frameworka. Moduły ES serwowane wprost, ręcznie napisany service
-worker, żadnych skryptów z CDN. Jedyna zależność deweloperska to `wrangler` (oficjalne narzędzie
-Cloudflare), który nie trafia ani na serwer, ani na telefony.
+### 9. Frontend: czysty JavaScript + Pico CSS
+
+Cztery ekrany nie uzasadniają frameworka ani kroku budowania: moduły ES serwowane wprost,
+ręcznie napisany service worker. Za wygląd odpowiada Pico CSS — znana, mała biblioteka, która
+stylizuje zwykły semantyczny HTML (przyciski, formularze, tabele, karty, jasny i ciemny motyw).
+To jeden plik CSS bez JavaScriptu, skopiowany do repozytorium i serwowany z własnej domeny.
+Odrzucone: Tailwind (wymaga kroku budowania), Bootstrap (większy, z własnym JavaScriptem).
 
 ### 10. Podgląd arkusza: własna tabela + link do oryginału
 
 Tabela rysowana z modelu grafiku działa offline, podświetla bieżący tydzień i „moje" komórki.
 Obok przycisk „Otwórz arkusz w Excelu". Osadzenie oryginału w ramce jest zablokowane przez SharePoint.
+
+### 11. Zależności: jak najmniej, znane, przypięte
+
+| Paczka | Po co | Gdzie działa | Zależności pośrednie |
+|---|---|---|---|
+| `wrangler` | wdrażanie i lokalne uruchamianie | komputer dewelopera | wiele (oficjalne narzędzie Cloudflare) |
+| `http_ece` 1.2.1 | wzorzec w testach szyfrowania | tylko testy | 0 |
+| `@picocss/pico` 2.1.1 | wygląd | telefon — sam CSS, kopia w `public/vendor/` | 0 |
+
+Na serwer nie trafia żadna paczka npm. Nową zależność dodajemy tylko wtedy, gdy zastępuje
+kod, którego błędu nie umiemy tanio wykryć testem — i tylko znaną, przypiętą do dokładnej
+wersji, nigdy z CDN.
 
 ## 4. Architektura
 
@@ -135,7 +174,7 @@ Obok przycisk „Otwórz arkusz w Excelu". Osadzenie oryginału w ramce jest zab
 │ service worker:          │        │  ├─ cron co 15 min: kto ma przypomnienie│
 │  - cache powłoki         │        │  └─ cron co 6 h: pobierz i sparsuj Excel│
 │  - push → powiadomienie  │        │ D1: grafik (JSON), subskrypcje,         │
-└────────────▲─────────────┘        │     ustawienia, zrobione, wysłane       │
+└────────────▲─────────────┘        │     ustawienia, stany zadań, wysłane    │
              │ push                 └───────┬──────────────────────┬──────────┘
    ┌─────────┴──────────┐   Web Push        │                      │ HTTPS + ciasteczko
    │ FCM / APNs / Mozilla│◄─────────────────┘                      ▼
@@ -250,7 +289,8 @@ gdy link do arkusza pierwszy raz padnie.
 ### Pozostałe pomysły
 
 - Powiadomienie „grafik się zmienił" dla osób, którym zmieniło się zadanie w bieżącym tygodniu.
-- „Wytykanie": wiadomość do wszystkich, gdy ktoś nie odhaczył do końca tygodnia.
+- „Wytykanie": wiadomość do wszystkich, gdy czyjeś zadanie nie jest zrobione do końca tygodnia
+  (tu przydaje się rozróżnienie *przyjęte* i *zrobione*).
 - Historia i statystyki (kto ile razy zrobił na czas).
 - Subskrypcja kalendarza (ICS) jako zapasowy kanał.
 - Publikacja w Google Play jako TWA.

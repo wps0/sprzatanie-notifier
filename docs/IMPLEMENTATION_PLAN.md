@@ -8,9 +8,13 @@ Całość działa na jednym Cloudflare Workerze (darmowy plan) z bazą D1.
 
 ## 0. Zasady twarde
 
-1. **Zero zależności w kodzie produkcyjnym** — ani w `src/`, ani w `public/`. Żadnych paczek
-   npm, frameworków, bundlerów, skryptów ani czcionek z CDN. Jedyna dozwolona zależność
-   deweloperska to `wrangler`, przypięty do dokładnej wersji, z commitowanym `package-lock.json`.
+1. **Jak najmniej zależności.** Dozwolone są dokładnie trzy, wszystkie w `devDependencies`,
+   przypięte do dokładnej wersji, z commitowanym `package-lock.json`:
+   `wrangler` (wdrażanie), `http_ece` (wzorzec w testach szyfrowania) i `@picocss/pico`
+   (CSS kopiowany do `public/vendor/`). Kod w `src/` nie importuje żadnej paczki npm.
+   Nic nie jest ładowane z CDN. Bez frameworków, bundlerów i kroku budowania.
+   Każda kolejna zależność wymaga zgody właściciela: zatrzymaj się i zapytaj, podając powód
+   i alternatywę. Uzasadnienie: DESIGN.md §3, decyzje 6 i 11.
 2. **Nie przepisuj modułów w `src/core/`**, które już istnieją (§1). Są zweryfikowane. Jeśli
    musisz je zmienić, najpierw dodaj test pokazujący potrzebę.
 3. **Żadnych danych osobowych ani sekretów w repozytorium**: prawdziwych imion, adresu
@@ -24,24 +28,28 @@ Całość działa na jednym Cloudflare Workerze (darmowy plan) z bazą D1.
    Strona pobiera stan tylko przy otwarciu lub powrocie na pierwszy plan.
 7. Logika jest w czystych funkcjach z testami (`node --test`). Czas i `fetch` są wstrzykiwane,
    nigdy brane globalnie wewnątrz logiki.
-8. Komentarze i identyfikatory w kodzie po angielsku; teksty interfejsu po polsku.
+8. Komentarze i wszystkie nazwy po angielsku i opisowo: identyfikatory, pola JSON, parametry
+   adresów, ścieżki, klucze pamięci (`code`, `weekday`, `#/settings` — nie `k`, `dow`,
+   `#/ustawienia`). Po polsku są wyłącznie teksty, które widzi użytkownik.
 9. Po każdym kamieniu milowym: `npm test` zielone, osobny commit.
 
 ## 1. Stan wyjściowy — gotowe i przetestowane
 
-`npm test` uruchamia 18 testów, wszystkie przechodzą. Wymagany Node ≥ 22.13.
+`npm ci`, a potem `npm test`: 22 testy, wszystkie przechodzą. Wymagany Node ≥ 22.13.
 
 | Plik | Co robi | Jak zweryfikowano |
 |---|---|---|
 | `src/core/sheet-fetch.js` | `downloadWorkbook(url)` — pobiera plik zza linku SharePoint, ręcznie podążając za przekierowaniem i przenosząc ciasteczka | Na żywym linku oraz testami z atrapą `fetch` |
 | `src/core/xlsx.js` | `readFirstSheet(bytes)` — ZIP + XML → wiersze z wartościami komórek | Na prawdziwym pliku z Excel Online |
 | `src/core/schedule.js` | `buildSchedule(rows)`, `weekFor()`, `tasksFor()` — wiersze → model grafiku | Jak wyżej + przypadki brzegowe |
-| `src/core/webpush.js` | `sendPush()`, `encryptPayload()`, `vapidAuthorization()`, `generateVapidKeys()` | Odtwarza przykład z RFC 8291 bajt w bajt; podpis VAPID weryfikowany kluczem publicznym |
+| `src/core/webpush.js` | `sendPush()`, `encryptPayload()`, `vapidAuthorization()`, `generateVapidKeys()` | Odtwarza przykład z RFC 8291 bajt w bajt; dla losowych danych daje wynik identyczny z implementacją referencyjną `http_ece` (`test/webpush-interop.test.js`); podpis VAPID weryfikowany natywnym ECDSA |
 | `src/core/time.js` | `localParts()`, `slotsBetween()`, `isoWeekday()` — czas lokalny w strefie mieszkania | Testy ze zmianą czasu w obie strony |
 | `migrations/0001_init.sql` | Schemat D1 | Ładowany przez atrapę D1 w testach |
 | `test/helpers/d1.js` | `createD1()` — atrapa D1 w pamięci na wbudowanym `node:sqlite` | Test `test/d1.test.js` |
 | `test/fixtures/grafik.xlsx` | Prawdziwy układ arkusza ze zmyślonymi imionami | — |
 | `scripts/gen-vapid.js` | Generuje parę kluczy VAPID | Uruchomiony ręcznie |
+| `public/vendor/pico.jade.min.css` | Pico CSS 2.1.1, kopia z `node_modules` (wersja i skrót w `public/vendor/README.md`) | Bez zewnętrznych adresów — tylko `data:` |
+| `scripts/vendor.js` | `npm run vendor` — odświeża kopię po zmianie wersji | Uruchomiony |
 
 Wszystkie moduły `src/core/` używają wyłącznie standardowych API (`fetch`, WebCrypto,
 `DecompressionStream`, `Intl`), więc ten sam kod działa w Workerze i w Node.
@@ -69,7 +77,8 @@ public/
   index.html, style.css, sw.js, _headers
   app.js, api.js, push.js, views/{onboarding,today,schedule,settings}.js
   icons/{icon-192,icon-512,maskable-512,apple-touch-icon,badge-96}.png
-scripts/gen-vapid.js, scripts/gen-flat-code.js
+  vendor/pico.jade.min.css   (już jest)
+scripts/gen-vapid.js, scripts/vendor.js, scripts/gen-flat-code.js
 test/*.test.js, test/helpers/d1.js, test/fixtures/grafik.xlsx
 ```
 
@@ -136,7 +145,7 @@ Tabele D1 (`migrations/0001_init.sql`):
 | `meta` | Pojedyncze wartości: `schedule_json`, `schedule_fetched_at`, `schedule_attempt_at`, `schedule_error`, `last_tick` |
 | `subscriptions` | Jedna subskrypcja push na urządzenie; klucz: `endpoint` |
 | `prefs` | Reguły przypomnień danej osoby (JSON). Brak wiersza = domyślne |
-| `done` | Odhaczone zadania; klucz: `(week_start, task_key)` |
+| `task_status` | Stan zadania w tygodniu: `acknowledged` albo `done`. Brak wiersza = `pending`. Klucz: `(week_start, task_key)` |
 | `sent` | Zajęte klucze wysyłki; klucz główny zapobiega duplikatom |
 
 ## 5. API
@@ -158,9 +167,8 @@ Nagłówki bezpieczeństwa z `public/_headers` nie obejmują odpowiedzi Workera 
 | `POST /api/subscriptions` | `{ person, subscription }` | `{ ok: true }`. Upsert po `endpoint` |
 | `DELETE /api/subscriptions` | `{ endpoint }` | `{ ok: true }` |
 | `POST /api/push-test` | `{ endpoint }` | `{ ok, status }`. Przy `404`/`410` usuń subskrypcję i zwróć `{ ok: false, gone: true }` |
-| `POST /api/done` | `{ weekStart, taskKey, by }` | `{ done: [...] }` |
-| `DELETE /api/done` | `{ weekStart, taskKey }` | `{ done: [...] }` |
-| `GET /api/manifest?k=` | bez autoryzacji | Manifest PWA (§7) |
+| `PUT /api/task-status` | `{ weekStart, taskKey, status, updatedBy }` | `{ statuses: [...] }`. `status` to `pending`, `acknowledged` albo `done`; `pending` usuwa wiersz |
+| `GET /api/manifest?code=` | bez autoryzacji | Manifest PWA (§7) |
 
 Stan:
 
@@ -171,24 +179,36 @@ Stan:
   "timezone": "Europe/Warsaw",
   "schedule": { "tasks": [], "people": [], "weeks": [], "warnings": [] },
   "sheet": { "fetchedAt": 1794420000000, "error": null, "url": "<SHEET_URL>" },
-  "done": [{ "weekStart": "2026-11-09", "taskKey": "lazienka", "by": "Ewa", "at": 1794425000000 }],
+  "statuses": [{ "weekStart": "2026-11-09", "taskKey": "lazienka", "status": "done", "updatedBy": "Ewa", "updatedAt": 1794425000000 }],
   "vapidPublicKey": "B…",
-  "defaultRules": [{ "dow": 1, "time": "09:00" }, { "dow": 6, "time": "11:00" }, { "dow": 7, "time": "18:00" }]
+  "defaultRules": [{ "weekday": 1, "time": "09:00" }, { "weekday": 6, "time": "11:00" }, { "weekday": 7, "time": "18:00" }]
 }
 ```
 
-`done` obejmuje ostatnie 8 tygodni.
+`statuses` obejmuje ostatnie 8 tygodni. Zadanie bez wpisu jest w stanie `pending`.
+
+Stany zadania (DESIGN.md §3, decyzja 8):
+
+| `status` | Tekst w aplikacji | Przypomnienia |
+|---|---|---|
+| `pending` | Do zrobienia | wysyłane |
+| `acknowledged` | Przyjęte | wyciszone |
+| `done` | Zrobione | wyciszone |
+
+Serwer traktuje `acknowledged` i `done` identycznie: oba wyciszają przypomnienia z danego
+tygodnia. Dozwolone jest każde przejście między stanami.
 
 Walidacja (każdy błąd to `400` z czytelnym komunikatem):
 
-- `person` i `by` muszą być w `schedule.people`.
+- `person` i `updatedBy` muszą być w `schedule.people`.
 - `subscription.endpoint`: adres `https:` na hoście `fcm.googleapis.com`,
   `updates.push.services.mozilla.com` albo z końcówką `.push.apple.com` lub
   `.notify.windows.com`. Inny host → `400 unsupported_push_service` z nazwą hosta w komunikacie.
 - `subscription.keys.p256dh` dekoduje się do 65 bajtów, `auth` do 16.
-- `rules`: najwyżej 10 pozycji; `dow` od 1 (pon) do 7 (ndz); `time` w formacie `HH:MM`
+- `rules`: najwyżej 10 pozycji; `weekday` od 1 (pon) do 7 (ndz); `time` w formacie `HH:MM`
   z minutami `00`, `15`, `30` lub `45`.
-- `done`: tydzień musi istnieć i `weekStart <= today`; zadanie musi istnieć i nie być wolnym.
+- `task-status`: `status` musi być jednym z trzech dozwolonych; tydzień musi istnieć
+  i `weekStart <= today`; zadanie musi istnieć i nie być wolnym.
 - Treść żądania większa niż 8 kB → `413`.
 
 ## 6. Logika serwera
@@ -210,14 +230,14 @@ To wywołanie cron nie robi nic więcej — limit to 10 ms CPU, a parsowanie jes
 ### 6.2 Reguły i wybór przypomnień — `src/core/reminders.js` (czysta logika)
 
 ```js
-export const DEFAULT_RULES = [{ dow: 1, time: '09:00' }, { dow: 6, time: '11:00' }, { dow: 7, time: '18:00' }];
+export const DEFAULT_RULES = [{ weekday: 1, time: '09:00' }, { weekday: 6, time: '11:00' }, { weekday: 7, time: '18:00' }];
 
 /** Zwraca znormalizowane reguły albo rzuca Error z polskim komunikatem. */
 export function validateRules(input) {}
 
 /**
- * @param {{ schedule, rulesByPerson: Map<string, Rule[]>, done: Set<string>, fromMs: number, toMs: number, timeZone: string }} input
- *        done zawiera klucze `${weekStart}|${taskKey}`
+ * @param {{ schedule, rulesByPerson: Map<string, Rule[]>, silenced: Set<string>, fromMs: number, toMs: number, timeZone: string }} input
+ *        silenced: klucze `${weekStart}|${taskKey}` zadań w stanie acknowledged albo done
  * @returns {{ person, weekStart, weekEnd, task, kind: 'start'|'nudge'|'last', daysLeft, slotMs, dedupeKey }[]}
  */
 export function dueReminders(input) {}
@@ -230,13 +250,13 @@ Algorytm `dueReminders`:
 
 1. Dla każdej chwili `t` z `slotsBetween(fromMs, toMs)`: `local = localParts(t, timeZone)`.
 2. `week = weekFor(schedule, local.date)`. Brak tygodnia → pomiń chwilę.
-3. Dla każdej osoby z `rulesByPerson` i każdej jej reguły, gdzie `rule.dow === local.dow`
+3. Dla każdej osoby z `rulesByPerson` i każdej jej reguły, gdzie `rule.weekday === local.weekday`
    i `rule.time === local.time`:
 4. Dla każdego zadania z `tasksFor(schedule, week, person)` (wolne już są odfiltrowane),
-   którego klucz `${week.start}|${task.key}` nie jest w `done`, dodaj przypomnienie.
+   którego klucz `${week.start}|${task.key}` nie jest w `silenced`, dodaj przypomnienie.
 5. `dedupeKey = ${week.start}|${task.key}|${person}|${local.date}T${local.time}`.
 6. `daysLeft` = liczba dni od `local.date` do `week.end`.
-7. `kind`: posortuj reguły osoby według `(rule.dow - isoWeekday(week.start) + 7) % 7`, potem
+7. `kind`: posortuj reguły osoby według `(rule.weekday - isoWeekday(week.start) + 7) % 7`, potem
    według `time`. Pierwsza → `start`; ostatnia, jeśli reguł jest więcej niż jedna → `last`;
    pozostałe → `nudge`.
 
@@ -259,7 +279,7 @@ Wymagane testy (grafik z `test/fixtures/grafik.xlsx`, strefa `Europe/Warsaw`):
 
 - Poniedziałek 2026‑11‑09 09:00 czasu polskiego (08:00 UTC) → cztery przypomnienia `start`;
   osoba z kolumny wolnej nie dostaje nic.
-- Zadanie w `done` → brak przypomnienia.
+- Zadanie w `silenced` → brak przypomnienia.
 - Okno obejmujące kilka chwil (nadrabianie po przerwie) → każde przypomnienie raz.
 - Własne reguły osoby; pusta lista → nic.
 - Osoba spoza bieżącego tygodnia → nic. Data poza zakresem arkusza → nic.
@@ -275,7 +295,8 @@ Wymagane testy (grafik z `test/fixtures/grafik.xlsx`, strefa `Europe/Warsaw`):
 2. Wczytaj grafik; brak → zapisz `last_tick` i zakończ.
 3. Wczytaj subskrypcje i pogrupuj po osobie; osoby bez subskrypcji pomiń. Dla pozostałych
    weź reguły z `prefs` albo `DEFAULT_RULES`.
-4. Wczytaj `done` z ostatnich 3 tygodni.
+4. Wczytaj z `task_status` wpisy z ostatnich 3 tygodni i zbuduj z nich zbiór `silenced` —
+   liczy się każdy wpis, zarówno `acknowledged`, jak i `done`.
 5. `dueReminders(...)`.
 6. Dla każdego przypomnienia zajmij klucz:
    `INSERT OR IGNORE INTO sent (dedupe_key, sent_at) VALUES (?, ?)`. Jeśli `meta.changes === 0`,
@@ -301,7 +322,8 @@ Wymagane testy (atrapa D1, atrapa `fetch`, ustalony czas):
   starsze przypomnienia przepadają.
 - `410` usuwa subskrypcję.
 - Wszystkie wysyłki zakończone `500` → klucz znika z `sent`, kolejne wywołanie ponawia.
-- Zadanie odhaczone → brak wysyłki.
+- Zadanie w stanie `acknowledged` → brak wysyłki; tak samo w stanie `done`.
+- Po powrocie do `pending` kolejne przypomnienie znów wychodzi.
 - Osoba z dwoma urządzeniami dostaje wiadomość na oba.
 
 ## 7. Frontend
@@ -310,9 +332,27 @@ Wymagane testy (atrapa D1, atrapa `fetch`, ustalony czas):
 
 - `index.html`: `lang="pl"`, `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`,
   `theme-color`, `<link rel="manifest" href="/api/manifest">`, `<link rel="apple-touch-icon">`,
-  jeden `<script type="module" src="/app.js">`.
-- Jasny i ciemny motyw przez `prefers-color-scheme`. Cele dotykowe co najmniej 44 px.
-- Nawigacja po `location.hash`: `#/` (Ten tydzień), `#/grafik`, `#/ustawienia`. Dolny pasek z trzema zakładkami.
+  arkusze `/vendor/pico.jade.min.css` i po nim `/style.css`, jeden `<script type="module" src="/app.js">`.
+- Nawigacja po `location.hash`: `#/` (Ten tydzień), `#/schedule` (Grafik), `#/settings` (Ustawienia).
+  Dolny pasek z trzema zakładkami.
+
+### Wygląd
+
+Bazą jest Pico CSS: pisz semantyczny HTML i pozwól mu go ostylować. Własny `style.css` ma
+zawierać tylko to, czego Pico nie daje, i powinien zmieścić się w ok. 150 liniach.
+
+- Ekran to `<main class="container">`; każda sekcja to `<article>` (karta) z `<header>`.
+- Główna akcja to zwykły `<button>`; poboczna to `<button class="secondary outline">`;
+  cofanie i linki pomocnicze to `<a role="button" class="outline">` albo zwykły link.
+- Pytania („Oznaczyć jako zrobione za: Bartek?") w `<dialog>` stylizowanym przez Pico,
+  nie w `confirm()`.
+- Trwające żądanie: `aria-busy="true"` na przycisku. Banery: `<article>` z własną klasą koloru.
+- Jasny i ciemny motyw daje Pico automatycznie z `prefers-color-scheme` — nie nadpisuj kolorów
+  na sztywno; własne kolory opieraj na zmiennych `--pico-*`.
+- Własny CSS: dolny pasek zakładek (przyklejony, z `env(safe-area-inset-bottom)`), znaczniki
+  stanu zadania, wyróżnienia w tabeli grafiku, przyklejony nagłówek tabeli.
+- Cele dotykowe co najmniej 44 px. Stan zadania zawsze jako tekst z ikoną, nigdy sam kolor.
+- Bez emoji w roli ikon nawigacji; wystarczą podpisy zakładek.
 - `public/_headers`:
 
 ```
@@ -327,15 +367,15 @@ Wymagane testy (atrapa D1, atrapa `fetch`, ustalony czas):
   Cache-Control: no-cache
 ```
 
-### Manifest — `GET /api/manifest?k=`
+### Manifest — `GET /api/manifest?code=`
 
 `name: "Sprzątanie"`, `short_name: "Sprzątanie"`, `lang: "pl"`, `display: "standalone"`,
 `id: "/"`, `scope: "/"`, ikony 192, 512 i maskable 512, `background_color`, `theme_color`.
-`start_url` to `/?k=<kod>`, gdy `k` pasuje do `^[a-z0-9-]{1,64}$`, w przeciwnym razie `/`.
+`start_url` to `/?code=<kod>`, gdy `code` pasuje do `^[a-z0-9-]{1,64}$`, w przeciwnym razie `/`.
 Typ `application/manifest+json`. Endpoint nie sprawdza poprawności kodu.
 
 Po co: na iPhonie zainstalowana PWA ma osobną pamięć niż Safari, więc kod zapisany przed
-instalacją by przepadł. Gdy strona zna kod, podmienia `href` manifestu na `/api/manifest?k=<kod>`.
+instalacją by przepadł. Gdy strona zna kod, podmienia `href` manifestu na `/api/manifest?code=<kod>`.
 To rozwiązanie „najlepiej jak się da" — pewną ścieżką jest ręczne wpisanie kodu.
 
 ### Pamięć po stronie klienta
@@ -347,7 +387,7 @@ To rozwiązanie „najlepiej jak się da" — pewną ścieżką jest ręczne wpi
 
 ### Start aplikacji
 
-1. Jeśli w adresie jest `?k=`, zapisz kod i usuń parametr przez `history.replaceState`.
+1. Jeśli w adresie jest `?code=`, zapisz kod i usuń parametr przez `history.replaceState`.
 2. Zarejestruj `/sw.js`.
 3. Pokaż `lastState`, jeśli jest; równolegle pobierz `/api/state`.
 4. `401` → wyczyść kod i pokaż ekran „Kod mieszkania". Brak sieci → baner offline.
@@ -384,19 +424,28 @@ gdzie klucz to `vapidPublicKey` zdekodowany z base64url do `Uint8Array`.
 ### Ten tydzień (`#/`)
 
 - Nagłówek z zakresem dat, np. „9–15 listopada".
-- Karta „Twoje zadanie": tytuł, opis, duży przycisk „Zrobione". Po odhaczeniu: „Zrobione ✓"
-  i link „Cofnij". Wolne: „W tym tygodniu masz wolne". Brak tygodnia: „Brak grafiku na ten tydzień".
-- Lista „W tym tygodniu": zadanie, osoba, stan. Stuknięcie cudzego zadania pyta
-  „Odhaczyć za: Bartek?" i zapisuje z `by` równym bieżącej osobie. Gdy odhaczył ktoś inny
-  niż przypisany, pokaż „odhaczone przez: …".
+- Karta „Twoje zadanie": tytuł, opis i akcje zależne od stanu:
+
+  | Stan | Co widać | Akcje |
+  |---|---|---|
+  | `pending` | „Do zrobienia" | główna „Zrobione", poboczna „Pamiętam" z dopiskiem „wycisza przypomnienia w tym tygodniu" |
+  | `acknowledged` | „Przyjęte — przypomnienia wyciszone" | główna „Zrobione", link „Cofnij" (→ `pending`) |
+  | `done` | „Zrobione" | link „Cofnij" (→ `pending`) |
+
+  Wolne: „W tym tygodniu masz wolne". Brak tygodnia: „Brak grafiku na ten tydzień".
+- Lista „W tym tygodniu": zadanie, osoba i stan jako tekst z ikoną („Do zrobienia",
+  „Przyjęte", „Zrobione"). Stuknięcie cudzego zadania w stanie innym niż `done` pyta
+  „Oznaczyć jako zrobione za: Bartek?" i zapisuje `done` z `updatedBy` równym bieżącej osobie.
+  Cudzego zadania nie da się oznaczyć jako przyjęte. Gdy stan ustawił ktoś inny niż
+  przypisany, pokaż „oznaczone przez: …".
 - „Za tydzień: {zadanie}".
 - Banery: brak sieci („Brak połączenia — dane z {godzina}"), błąd arkusza („Nie udało się
   odczytać arkusza od {data}. Widzisz ostatnią poprawną wersję."), wyłączone powiadomienia
   („Powiadomienia są wyłączone" z przyciskiem „Włącz").
 
-Odhaczanie jest optymistyczne: od razu zmień widok, przy błędzie cofnij i pokaż komunikat.
+Zmiana stanu jest optymistyczna: od razu zmień widok, przy błędzie cofnij i pokaż komunikat.
 
-### Grafik (`#/grafik`)
+### Grafik (`#/schedule`)
 
 Tabela: wiersze to tygodnie (`DD.MM–DD.MM`), kolumny to zadania (sam tytuł). Przyklejony
 nagłówek, przewijanie w poziomie, bieżący tydzień wyróżniony i przewinięty do widoku,
@@ -404,7 +453,7 @@ minione tygodnie przygaszone, komórki bieżącej osoby wyróżnione. Pod spodem
 z arkusza" (`POST /api/refresh`), „Otwórz arkusz w Excelu" (`sheet.url`, `target="_blank"`,
 `rel="noopener"`) i „Ostatnia synchronizacja: …".
 
-### Ustawienia (`#/ustawienia`)
+### Ustawienia (`#/settings`)
 
 - Osoba, z możliwością zmiany (zmiana ponownie wysyła subskrypcję z nową osobą).
 - Przypomnienia: lista reguł (dzień tygodnia + godzina co 15 minut), „Dodaj", usuwanie,
@@ -417,11 +466,13 @@ z arkusza" (`POST /api/refresh`), „Otwórz arkusz w Excelu" (`sheet.url`, `tar
 - `install`: wstępnie zapisz powłokę; `skipWaiting()`. `activate`: `clients.claim()`.
 - `fetch`: dla żądań `GET` z tej samej domeny poza `/api/` — odpowiedz z cache i w tle
   odśwież wpis (stale‑while‑revalidate). Żądań `/api/` nie dotykaj.
-- `push`: `event.waitUntil(showNotification(title, { body, tag, renotify: true, icon, badge, data, actions: [{ action: 'done', title: 'Zrobione' }] }))`.
+- `push`: `event.waitUntil(showNotification(title, { body, tag, renotify: true, icon, badge, data, actions }))`,
+  gdzie `actions` to `[{ action: 'acknowledge', title: 'Pamiętam' }, { action: 'done', title: 'Zrobione' }]`.
   Gdy treści nie da się odczytać, pokaż powiadomienie ogólne („Sprzątanie", „Sprawdź grafik").
-- `notificationclick`: zamknij powiadomienie. Dla akcji `done`: odczytaj `/__config` z cache,
-  wyślij `POST /api/done`; przy błędzie otwórz aplikację. W pozostałych przypadkach aktywuj
-  otwarte okno aplikacji albo otwórz `/`.
+- `notificationclick`: zamknij powiadomienie. Dla akcji `acknowledge` i `done`: odczytaj
+  `/__config` z cache i wyślij `PUT /api/task-status` ze stanem `acknowledged` albo `done`;
+  przy błędzie otwórz aplikację. W pozostałych przypadkach aktywuj otwarte okno aplikacji
+  albo otwórz `/`.
 - `pushsubscriptionchange`: zasubskrybuj ponownie i wyślij na serwer (na ile przeglądarka pozwala).
 
 Przyciski akcji w powiadomieniu działają w Chrome; iOS je pomija, co nie jest błędem.
@@ -430,7 +481,7 @@ Przyciski akcji w powiadomieniu działają w Chrome; iOS je pomija, co nie jest 
 
 ### M1 — szkielet serwera i grafik
 
-`wrangler` jako jedyna zależność deweloperska, `wrangler.jsonc`, `src/worker.js`, `app.js`,
+`wrangler` dodany do `devDependencies` (`npm install --save-dev --save-exact wrangler`), `wrangler.jsonc`, `src/worker.js`, `app.js`,
 `store.js`, `refresh.js`, `handlers.js` z `GET /api/state` i `POST /api/refresh`, autoryzacja,
 `scripts/gen-flat-code.js`.
 
@@ -464,13 +515,14 @@ o potwierdzenie na Androidzie i, jeśli jest dostępny, na iPhonie.
 Akceptacja: wszystkie testy z §6.2 i §6.3. Lokalnie cron da się wywołać ręcznie
 (`wrangler dev --test-scheduled`; adres wyzwalający sprawdź w dokumentacji).
 
-### M5 — „Zrobione"
+### M5 — stany zadań
 
-`/api/done`, przycisk i lista stanu, akcja „Zrobione" w powiadomieniu, pomijanie odhaczonych
-w `tick.js`.
+`PUT /api/task-status`, karta i lista z trzema stanami, akcje „Pamiętam" i „Zrobione"
+w powiadomieniu, pomijanie wyciszonych zadań w `tick.js`.
 
-Akceptacja: testy walidacji (przyszły tydzień, wolne, nieznana osoba), cofanie, brak
-przypomnienia po odhaczeniu.
+Akceptacja: testy walidacji (nieznany stan, przyszły tydzień, wolne, nieznana osoba);
+każde przejście między trzema stanami; brak przypomnienia w stanach `acknowledged` i `done`;
+powrót do `pending` przywraca przypomnienia.
 
 ### M6 — domknięcie
 
@@ -481,6 +533,10 @@ komunikatów błędów, pomiar czasu CPU po wdrożeniu.
 ## 9. Wdrożenie — kroki dla właściciela
 
 Wykonawca nie ma dostępu do konta Cloudflare, więc te kroki robi człowiek. Każde polecenie osobno:
+
+```bash
+npm ci
+```
 
 ```bash
 npx wrangler login
@@ -523,7 +579,7 @@ npx wrangler deploy
 ```
 
 Adres z wyniku wpisz do `vars.VAPID_SUBJECT` i wdróż ponownie. Potem otwórz na telefonie
-`https://<adres>/?k=<kod>` i przejdź ekran powitalny do testowego powiadomienia.
+`https://<adres>/?code=<kod>` i przejdź ekran powitalny do testowego powiadomienia.
 
 ## 10. Pułapki
 
@@ -536,3 +592,6 @@ Adres z wyniku wpisz do `vars.VAPID_SUBJECT` i wdróż ponownie. Potem otwórz n
 - `node:sqlite` wypisuje ostrzeżenie o funkcji eksperymentalnej. Jest niegroźne.
 - Arkusz może zawierać komórki z błędem (`#VALUE!`) i obrazki w komórkach; parser je pomija. Nie „naprawiaj" tego.
 - Nie zapisuj adresu arkusza ani kodu w logach.
+- `http_ece` wolno importować wyłącznie w `test/`. Do `src/` nie trafia.
+- Po zmianie wersji `@picocss/pico` uruchom `npm run vendor` i zacommituj `public/vendor/`. Strona ładuje wyłącznie kopię z `public/vendor/`, nigdy z `node_modules` ani z CDN.
+- Instaluj przez `npm ci`; nowe paczki dodawaj z `--save-exact`.
