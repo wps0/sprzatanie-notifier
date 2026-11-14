@@ -3,14 +3,20 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22.13"
+    "node": ">=22.18"
   },
   "scripts": {
-    "test": "node --test \"test/*.test.js\"",
-    "vendor": "node scripts/vendor.js"
+    "test": "node --test \"test/*.test.js\" \"test/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.ts\""
   },
   "devDependencies": {
-    "bootstrap": "5.3.9",
-    "http_ece": "1.2.1"
+    "@tailwindcss/cli": "4.3.5",
+    "@types/node": "22.20.5",
+    "http_ece": "1.2.1",
+    "prettier": "3.10.1",
+    "tailwindcss": "4.3.5",
+    "typescript": "7.0.2",
+    "wrangler": "4.162.0"
   }
 }
