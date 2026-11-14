@@ -1,0 +1,16 @@
+{
+  "name": "sprzatanie-notifier",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "vendor": "node scripts/vendor.js"
+  },
+  "devDependencies": {
+    "bootstrap": "5.3.9",
+    "http_ece": "1.2.1"
+  }
+}
