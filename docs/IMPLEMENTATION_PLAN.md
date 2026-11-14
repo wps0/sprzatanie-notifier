@@ -10,8 +10,8 @@ Całość działa na jednym Cloudflare Workerze (darmowy plan) z bazą D1.
 
 1. **Jak najmniej zależności.** Dozwolone są dokładnie trzy, wszystkie w `devDependencies`,
    przypięte do dokładnej wersji, z commitowanym `package-lock.json`:
-   `wrangler` (wdrażanie), `http_ece` (wzorzec w testach szyfrowania) i `@picocss/pico`
-   (CSS kopiowany do `public/vendor/`). Kod w `src/` nie importuje żadnej paczki npm.
+   `wrangler` (wdrażanie), `http_ece` (wzorzec w testach szyfrowania) i `bootstrap`
+   (wyłącznie plik CSS, kopiowany do `public/vendor/`). Kod w `src/` nie importuje żadnej paczki npm.
    Nic nie jest ładowane z CDN. Bez frameworków, bundlerów i kroku budowania.
    Każda kolejna zależność wymaga zgody właściciela: zatrzymaj się i zapytaj, podając powód
    i alternatywę. Uzasadnienie: DESIGN.md §3, decyzje 6 i 11.
@@ -48,7 +48,9 @@ Całość działa na jednym Cloudflare Workerze (darmowy plan) z bazą D1.
 | `test/helpers/d1.js` | `createD1()` — atrapa D1 w pamięci na wbudowanym `node:sqlite` | Test `test/d1.test.js` |
 | `test/fixtures/grafik.xlsx` | Prawdziwy układ arkusza ze zmyślonymi imionami | — |
 | `scripts/gen-vapid.js` | Generuje parę kluczy VAPID | Uruchomiony ręcznie |
-| `public/vendor/pico.jade.min.css` | Pico CSS 2.1.1, kopia z `node_modules` (wersja i skrót w `public/vendor/README.md`) | Bez zewnętrznych adresów — tylko `data:` |
+| `public/vendor/bootstrap.min.css` | Bootstrap 5.3.9, kopia identyczna z plikiem z paczki (wersja i skrót w `public/vendor/README.md`) | Bez zewnętrznych adresów — tylko `data:` |
+| `public/theme.js`, `public/style.css` | Przełączanie motywu jasny/ciemny; style aplikacji ponad Bootstrapem | Zrzuty makiety w obu motywach |
+| `docs/mockup/today.html` | Statyczna makieta ekranu „Ten tydzień" ze zmyślonymi danymi — wzór użycia klas Bootstrapa | Obejrzana w rozmiarze telefonu, bez przewijania w poziomie |
 | `scripts/vendor.js` | `npm run vendor` — odświeża kopię po zmianie wersji | Uruchomiony |
 
 Wszystkie moduły `src/core/` używają wyłącznie standardowych API (`fetch`, WebCrypto,
@@ -77,7 +79,8 @@ public/
   index.html, style.css, sw.js, _headers
   app.js, api.js, push.js, views/{onboarding,today,schedule,settings}.js
   icons/{icon-192,icon-512,maskable-512,apple-touch-icon,badge-96}.png
-  vendor/pico.jade.min.css   (już jest)
+  vendor/bootstrap.min.css   (już jest)
+  theme.js                   (już jest; style.css też — rozbudowuj)
 scripts/gen-vapid.js, scripts/vendor.js, scripts/gen-flat-code.js
 test/*.test.js, test/helpers/d1.js, test/fixtures/grafik.xlsx
 ```
@@ -332,28 +335,48 @@ Wymagane testy (atrapa D1, atrapa `fetch`, ustalony czas):
 
 - `index.html`: `lang="pl"`, `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`,
   `theme-color`, `<link rel="manifest" href="/api/manifest">`, `<link rel="apple-touch-icon">`,
-  arkusze `/vendor/pico.jade.min.css` i po nim `/style.css`, jeden `<script type="module" src="/app.js">`.
+  arkusze `/vendor/bootstrap.min.css` i po nim `/style.css`, blokujący `<script src="/theme.js">`
+  w `<head>` (ustawia motyw przed pierwszym rysowaniem), jeden `<script type="module" src="/app.js">`.
 - Nawigacja po `location.hash`: `#/` (Ten tydzień), `#/schedule` (Grafik), `#/settings` (Ustawienia).
   Dolny pasek z trzema zakładkami.
 
 ### Wygląd
 
-Bazą jest Pico CSS: pisz semantyczny HTML i pozwól mu go ostylować. Własny `style.css` ma
-zawierać tylko to, czego Pico nie daje, i powinien zmieścić się w ok. 150 liniach.
+Bazą jest Bootstrap 5.3, wyłącznie CSS. **Nie dodawaj JavaScriptu Bootstrapa** — komponenty,
+które go wymagają (`.modal`, `.dropdown`, `.offcanvas`, `.collapse`, `.toast`), są wykluczone.
+Wzorem jest makieta `docs/mockup/today.html`: otwórz ją w przeglądarce i trzymaj się tych
+samych klas. Własny `public/style.css` zawiera tylko to, czego Bootstrap nie daje.
 
-- Ekran to `<main class="container">`; każda sekcja to `<article>` (karta) z `<header>`.
-- Główna akcja to zwykły `<button>`; poboczna to `<button class="secondary outline">`;
-  cofanie i linki pomocnicze to `<a role="button" class="outline">` albo zwykły link.
-- Pytania („Oznaczyć jako zrobione za: Bartek?") w `<dialog>` stylizowanym przez Pico,
-  nie w `confirm()`.
-- Trwające żądanie: `aria-busy="true"` na przycisku. Banery: `<article>` z własną klasą koloru.
-- Jasny i ciemny motyw daje Pico automatycznie z `prefers-color-scheme` — nie nadpisuj kolorów
-  na sztywno; własne kolory opieraj na zmiennych `--pico-*`.
-- Własny CSS: dolny pasek zakładek (przyklejony, z `env(safe-area-inset-bottom)`), znaczniki
-  stanu zadania, wyróżnienia w tabeli grafiku, przyklejony nagłówek tabeli.
-- Cele dotykowe co najmniej 44 px. Stan zadania zawsze jako tekst z ikoną, nigdy sam kolor.
-- Bez emoji w roli ikon nawigacji; wystarczą podpisy zakładek.
-- `public/_headers`:
+| Element | Klasy |
+|---|---|
+| Ekran | `<main class="container app-main py-3">` |
+| Karta | `.card` > `.card-body` |
+| Główna akcja („Zrobione") | `.btn .btn-success .btn-lg`, w `.d-grid .gap-2` na całą szerokość |
+| Akcja poboczna („Pamiętam") | `.btn .btn-outline-secondary .text-body` |
+| Pozostałe przyciski | `.btn .btn-primary`; mniej ważne `.btn .btn-outline-secondary .text-body`; cofanie `.btn .btn-link` |
+| Stan zadania | `.badge .rounded-pill` oraz `.text-bg-secondary` (Do zrobienia), `.text-bg-info` (Przyjęte), `.text-bg-success` (Zrobione) |
+| Lista tygodnia | `.list-group` > `.list-group-item .d-flex .justify-content-between .align-items-center`; wiersz bieżącej osoby dodatkowo `.bg-body-tertiary` |
+| Banery | `.alert` oraz `.alert-warning` (ostrzeżenie), `.alert-danger` (błąd), `.alert-secondary` (informacja) |
+| Formularze | `.form-label`, `.form-control`, `.form-select` |
+| Tabela grafiku | `.table-responsive` > `.table .table-sm .schedule-table`; bieżący tydzień `.table-active`, minione `.is-past`, komórki bieżącej osoby `.is-mine` |
+| Dolne zakładki | `<nav class="navbar fixed-bottom bg-body-tertiary border-top app-tabs">` z `.nav .nav-pills .nav-fill` |
+| Okno pytania | natywny `<dialog class="app-dialog">` z `.card-body` w środku, otwierany przez `showModal()` — nie `confirm()` |
+| Trwające żądanie | przycisk `disabled` i `<span class="spinner-border spinner-border-sm" aria-hidden="true">` |
+| Tekst pomocniczy | `.text-body-secondary .small` albo `.form-text` |
+
+Zasady:
+
+- Zielony (`success`) jest jedynym akcentem i oznacza „zrobione". Zakładki są neutralne.
+- Motyw jasny i ciemny przełącza `theme.js` atrybutem `data-bs-theme`. Nie wpisuj kolorów
+  na sztywno; używaj klas Bootstrapa i zmiennych `--bs-*`.
+- Stan zadania zawsze jako tekst; kolor jest tylko pomocniczy. Bez symboli Unicode i emoji
+  w roli ikon — na różnych telefonach wyświetlają się różnie.
+- `.btn-outline-secondary` zawsze z `.text-body`; bez tego tekst ma za słaby kontrast
+  w ciemnym motywie.
+- Cele dotykowe co najmniej 44 px. Brak przewijania w poziomie przy szerokości 360 px.
+- Po każdej zmianie widoku zrób zrzut ekranu 390×844 w motywie jasnym i ciemnym i obejrzyj go.
+
+### Nagłówki — `public/_headers`
 
 ```
 /*
@@ -433,7 +456,7 @@ gdzie klucz to `vapidPublicKey` zdekodowany z base64url do `Uint8Array`.
   | `done` | „Zrobione" | link „Cofnij" (→ `pending`) |
 
   Wolne: „W tym tygodniu masz wolne". Brak tygodnia: „Brak grafiku na ten tydzień".
-- Lista „W tym tygodniu": zadanie, osoba i stan jako tekst z ikoną („Do zrobienia",
+- Lista „W tym tygodniu": zadanie, osoba i stan jako tekst („Do zrobienia",
   „Przyjęte", „Zrobione"). Stuknięcie cudzego zadania w stanie innym niż `done` pyta
   „Oznaczyć jako zrobione za: Bartek?" i zapisuje `done` z `updatedBy` równym bieżącej osobie.
   Cudzego zadania nie da się oznaczyć jako przyjęte. Gdy stan ustawił ktoś inny niż
@@ -496,7 +519,7 @@ startuje i odpowiada na `/api/state`.
 powitalny (kod i osoba), service worker z cache powłoki, manifest, ikony, `_headers`.
 
 Akceptacja: zrzut ekranu z przeglądarki w rozmiarze telefonu pokazuje poprawne dane dla
-ustalonej daty; po wyłączeniu sieci strona otwiera się z ostatnim stanem; konsola nie zgłasza
+ustalonej daty, a ekran „Ten tydzień" wygląda jak makieta `docs/mockup/today.html`; po wyłączeniu sieci strona otwiera się z ostatnim stanem; konsola nie zgłasza
 naruszeń CSP; w źródłach nie ma `innerHTML` z danymi.
 
 ### M3 — push od końca do końca
@@ -593,5 +616,7 @@ Adres z wyniku wpisz do `vars.VAPID_SUBJECT` i wdróż ponownie. Potem otwórz n
 - Arkusz może zawierać komórki z błędem (`#VALUE!`) i obrazki w komórkach; parser je pomija. Nie „naprawiaj" tego.
 - Nie zapisuj adresu arkusza ani kodu w logach.
 - `http_ece` wolno importować wyłącznie w `test/`. Do `src/` nie trafia.
-- Po zmianie wersji `@picocss/pico` uruchom `npm run vendor` i zacommituj `public/vendor/`. Strona ładuje wyłącznie kopię z `public/vendor/`, nigdy z `node_modules` ani z CDN.
+- Po zmianie wersji `bootstrap` uruchom `npm run vendor` i zacommituj `public/vendor/`. Strona ładuje wyłącznie kopię z `public/vendor/`, nigdy z `node_modules` ani z CDN.
+- `.npmrc` ustawia `legacy-peer-deps=true`, żeby npm nie instalował `@popperjs/core`, potrzebnego tylko JavaScriptowi Bootstrapa. Nie usuwaj tego ustawienia — bez niego `npm ci` się nie powiedzie.
+- `bootstrap.min.css` kończy się odwołaniem do mapy źródeł, której nie kopiujemy. Błąd 404 dla `bootstrap.min.css.map` w narzędziach deweloperskich jest niegroźny.
 - Instaluj przez `npm ci`; nowe paczki dodawaj z `--save-exact`.

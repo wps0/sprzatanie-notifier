@@ -10,7 +10,7 @@
     "vendor": "node scripts/vendor.js"
   },
   "devDependencies": {
-    "@picocss/pico": "2.1.1",
+    "bootstrap": "5.3.9",
     "http_ece": "1.2.1"
   }
 }

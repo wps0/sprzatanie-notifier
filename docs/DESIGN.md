@@ -138,13 +138,22 @@ tygodnia. Różnią się tylko tym, co widzą pozostali. Każdy stan można cofn
 co przywraca przypomnienia. Zapis do Excela wymagałby logowania do Microsoft Graph, więc
 stan żyje w D1, a arkusz pozostaje tylko do odczytu.
 
-### 9. Frontend: czysty JavaScript + Pico CSS
+### 9. Frontend: czysty JavaScript + Bootstrap (sam CSS)
 
-Cztery ekrany nie uzasadniają frameworka ani kroku budowania: moduły ES serwowane wprost,
-ręcznie napisany service worker. Za wygląd odpowiada Pico CSS — znana, mała biblioteka, która
-stylizuje zwykły semantyczny HTML (przyciski, formularze, tabele, karty, jasny i ciemny motyw).
-To jeden plik CSS bez JavaScriptu, skopiowany do repozytorium i serwowany z własnej domeny.
-Odrzucone: Tailwind (wymaga kroku budowania), Bootstrap (większy, z własnym JavaScriptem).
+Cztery ekrany nie uzasadniają frameworka JavaScript ani kroku budowania: moduły ES serwowane
+wprost, ręcznie napisany service worker. Za wygląd odpowiada Bootstrap 5.3 — najszerzej znana
+biblioteka CSS, aktywnie rozwijana (wydanie 5.3.9 z 11.11.2026). Bierzemy z niej wyłącznie
+plik `bootstrap.min.css` (232 kB, ok. 31 kB po kompresji), skopiowany do repozytorium
+i serwowany z własnej domeny. JavaScriptu Bootstrapa nie używamy: okna dialogowe to natywny
+`<dialog>`, a motyw jasny/ciemny przełącza kilka linii własnego kodu (`public/theme.js`).
+
+| Rozważone | Dlaczego nie |
+|---|---|
+| Pico CSS | Brak wydania od marca 2025; uznana za porzuconą |
+| Bulma | Ostatnie wydanie w kwietniu 2025 — ten sam problem |
+| Simple.css | Bezklasowa: za mało na dolny pasek zakładek, znaczniki stanu i listy |
+| Beer CSS | Aktywna, ale mniej znana i z dodatkową zależnością |
+| Tailwind | Wymaga kroku budowania |
 
 ### 10. Podgląd arkusza: własna tabela + link do oryginału
 
@@ -157,7 +166,7 @@ Obok przycisk „Otwórz arkusz w Excelu". Osadzenie oryginału w ramce jest zab
 |---|---|---|---|
 | `wrangler` | wdrażanie i lokalne uruchamianie | komputer dewelopera | wiele (oficjalne narzędzie Cloudflare) |
 | `http_ece` 1.2.1 | wzorzec w testach szyfrowania | tylko testy | 0 |
-| `@picocss/pico` 2.1.1 | wygląd | telefon — sam CSS, kopia w `public/vendor/` | 0 |
+| `bootstrap` 5.3.9 | wygląd | telefon — sam CSS, kopia w `public/vendor/` | 0 (zależność jego JavaScriptu nie jest instalowana) |
 
 Na serwer nie trafia żadna paczka npm. Nową zależność dodajemy tylko wtedy, gdy zastępuje
 kod, którego błędu nie umiemy tanio wykryć testem — i tylko znaną, przypiętą do dokładnej

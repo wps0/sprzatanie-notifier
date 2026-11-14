@@ -5,8 +5,8 @@ Plan dzieli pracę na kamienie milowe M1–M6 — realizuj je po kolei, jeden na
 
 Zasady, których nie wolno łamać (pełna lista: `docs/IMPLEMENTATION_PLAN.md` §0):
 
-- Jak najmniej zależności: dozwolone są tylko `wrangler`, `http_ece` (testy) i `@picocss/pico`
-  (CSS w `public/vendor/`). Kod w `src/` nie importuje paczek npm; nic z CDN. Kolejna
+- Jak najmniej zależności: dozwolone są tylko `wrangler`, `http_ece` (testy) i `bootstrap`
+  (sam plik CSS w `public/vendor/`, bez jego JavaScriptu). Kod w `src/` nie importuje paczek npm; nic z CDN. Kolejna
   zależność wymaga zgody właściciela.
 - Nazwy w kodzie, API i adresach po angielsku i opisowo; po polsku tylko teksty dla użytkownika.
 - Nie przepisuj istniejących modułów w `src/core/` — są zweryfikowane.
