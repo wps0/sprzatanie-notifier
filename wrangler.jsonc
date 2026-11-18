@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sprzatanie",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sprzatanie",
+      // Replace with the id printed by `npx wrangler d1 create sprzatanie`.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Must match TICK_CRON and REFRESH_CRON in src/worker/app.ts.
+  "triggers": {"crons": ["*/15 * * * *", "7 */6 * * *"]},
+  "vars": {
+    "TIMEZONE": "Europe/Warsaw",
+    // Public half of the key pair from `npm run gen:vapid`.
+    "VAPID_PUBLIC_KEY": "",
+    // The app's address, e.g. https://sprzatanie.<account>.workers.dev
+    "VAPID_SUBJECT": "",
+    // Comma-separated origins of a separately hosted web app, if any.
+    "ALLOWED_ORIGINS": ""
+  },
+  // Secrets, set with `npx wrangler secret put <NAME>`:
+  // FLAT_CODE, SHEET_URL, VAPID_PRIVATE_KEY.
+  "observability": {"enabled": true}
+}
