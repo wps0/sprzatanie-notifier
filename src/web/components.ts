@@ -16,6 +16,10 @@ export const CARD = cx(SURFACE, 'p-5');
 
 export const MUTED = 'text-stone-500 dark:text-stone-400';
 
+/** Page heading, scaling with the screen. */
+export const PAGE_TITLE =
+  'text-[clamp(1.75rem,7vw,2.25rem)] font-extrabold tracking-tight';
+
 const BUTTON_BASE = cx(
   'inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-5',
   'font-semibold transition active:scale-[0.98]',

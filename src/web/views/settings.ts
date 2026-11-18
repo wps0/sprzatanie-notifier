@@ -18,12 +18,13 @@ import {
   CARD,
   confirmDialog,
   MUTED,
+  PAGE_TITLE,
   sectionTitle,
   spinner,
   SURFACE,
 } from '../components.ts';
 import {cx, h, icon} from '../dom.ts';
-import {capitalize, WEEKDAYS} from '../format.ts';
+import {WEEKDAYS_SHORT} from '../format.ts';
 
 const FIRST_HOUR = 6;
 const NEW_RULE: ReminderRule = {weekday: 3, time: '18:00'};
@@ -80,7 +81,8 @@ function ruleRow(rules: readonly ReminderRule[], index: number): HTMLElement {
     {class: 'flex items-center gap-2 px-4 py-2.5'},
     select(
       'Dzień tygodnia',
-      WEEKDAYS.map((name, i) => [String(i + 1), capitalize(name)] as const),
+      // Short names keep the row on one line on the narrowest phones.
+      WEEKDAYS_SHORT.map((name, i) => [String(i + 1), name] as const),
       String(rule.weekday),
       value => replace({weekday: Number(value)}),
     ),
@@ -225,53 +227,65 @@ export function renderSettings(model: Model, state: AppState): HTMLElement {
   return h(
     'div',
     {class: 'grid grid-cols-1 gap-6'},
-    h('h1', {class: 'text-3xl font-extrabold tracking-tight'}, 'Ustawienia'),
+    h('h1', {class: PAGE_TITLE}, 'Ustawienia'),
     h(
-      'section',
-      {class: 'grid grid-cols-1 gap-3'},
-      sectionTitle('Ty'),
+      'div',
+      {class: 'grid grid-cols-1 items-start gap-6 md:grid-cols-2'},
       h(
         'div',
-        {class: cx(CARD, 'flex items-center gap-4')},
-        avatar(person, state.schedule.people, 'size-12 text-base'),
-        h('p', {class: 'min-w-0 flex-1 truncate text-lg font-bold'}, person),
-        button('Zmień', {
-          variant: 'soft',
-          block: false,
-          onclick: changePerson,
-        }),
+        {class: 'grid grid-cols-1 gap-6'},
+        h(
+          'section',
+          {class: 'grid grid-cols-1 gap-3'},
+          sectionTitle('Ty'),
+          h(
+            'div',
+            {class: cx(CARD, 'flex items-center gap-4')},
+            avatar(person, state.schedule.people, 'size-12 text-base'),
+            h(
+              'p',
+              {class: 'min-w-0 flex-1 truncate text-lg font-bold'},
+              person,
+            ),
+            button('Zmień', {
+              variant: 'soft',
+              block: false,
+              onclick: changePerson,
+            }),
+          ),
+        ),
+        h(
+          'section',
+          {class: 'grid grid-cols-1 gap-3'},
+          sectionTitle('Powiadomienia'),
+          notifications(model),
+        ),
+        h(
+          'section',
+          {class: 'grid grid-cols-1 gap-2.5'},
+          model.canInstall &&
+            button('Zainstaluj aplikację', {
+              variant: 'soft',
+              onclick: () => void installApp(),
+            }),
+          button('Wyloguj to urządzenie', {
+            variant: 'danger',
+            onclick: () => void leave(),
+          }),
+        ),
       ),
-    ),
-    h(
-      'section',
-      {class: 'grid grid-cols-1 gap-3'},
-      sectionTitle('Kiedy przypominać'),
-      reminders(model),
       h(
-        'p',
-        {class: cx('px-1 text-sm', MUTED)},
-        'Przypomnienia milkną, gdy oznaczysz zadanie jako przyjęte ' +
-          'albo zrobione.',
+        'section',
+        {class: 'grid grid-cols-1 gap-3'},
+        sectionTitle('Kiedy przypominać'),
+        reminders(model),
+        h(
+          'p',
+          {class: cx('px-1 text-sm', MUTED)},
+          'Przypomnienia milkną, gdy oznaczysz zadanie jako przyjęte ' +
+            'albo zrobione.',
+        ),
       ),
-    ),
-    h(
-      'section',
-      {class: 'grid grid-cols-1 gap-3'},
-      sectionTitle('Powiadomienia'),
-      notifications(model),
-    ),
-    h(
-      'section',
-      {class: 'grid grid-cols-1 gap-2.5'},
-      model.canInstall &&
-        button('Zainstaluj aplikację', {
-          variant: 'soft',
-          onclick: () => void installApp(),
-        }),
-      button('Wyloguj to urządzenie', {
-        variant: 'danger',
-        onclick: () => void leave(),
-      }),
     ),
   );
 }

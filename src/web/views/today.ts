@@ -16,6 +16,7 @@ import {
   CARD,
   confirmDialog,
   MUTED,
+  PAGE_TITLE,
   sectionTitle,
   statusPill,
   SURFACE,
@@ -50,7 +51,10 @@ function tasksOf(state: AppState, week: Week, person: string): Task[] {
   );
 }
 
-const HERO_BASE = 'relative overflow-hidden rounded-[2rem] p-6 shadow-lg';
+const HERO_BASE = cx(
+  'relative overflow-hidden rounded-[2rem] p-5 shadow-lg',
+  'min-[400px]:p-6 lg:p-8',
+);
 
 const HERO_TONES: Readonly<Record<TaskStatus, string>> = {
   pending: cx(
@@ -102,7 +106,7 @@ function heroCard(model: Model, state: AppState, week: Week, task: Task) {
     );
     actions.push(
       status === 'pending'
-        ? button('Pamiętam, nie przypominaj', {
+        ? button('Pamiętam', {
             variant: 'glass',
             icon: 'bellOff',
             onclick: () => set('acknowledged'),
@@ -142,7 +146,12 @@ function heroCard(model: Model, state: AppState, week: Week, task: Task) {
       ),
       h(
         'h2',
-        {class: 'mt-2 text-4xl font-extrabold tracking-tight text-balance'},
+        {
+          class: cx(
+            'mt-2 text-[clamp(2rem,9vw,3rem)] leading-tight font-extrabold',
+            'tracking-tight text-balance',
+          ),
+        },
         capitalize(task.title),
       ),
       task.details &&
@@ -167,6 +176,12 @@ function heroCard(model: Model, state: AppState, week: Week, task: Task) {
         capitalize(formatDeadline(week.end, state.today)),
       ),
       h('div', {class: 'mt-6 grid gap-2.5'}, ...actions),
+      status === 'pending' &&
+        h(
+          'p',
+          {class: 'mt-3 text-center text-sm text-white/75'},
+          '„Pamiętam” wycisza przypomnienia do końca tygodnia.',
+        ),
     ),
   );
 }
@@ -188,7 +203,12 @@ function freeCard(): HTMLElement {
       icon('sparkle', 'size-9'),
       h(
         'h2',
-        {class: 'mt-3 text-4xl font-extrabold tracking-tight'},
+        {
+          class: cx(
+            'mt-3 text-[clamp(2rem,9vw,3rem)] leading-tight font-extrabold',
+            'tracking-tight',
+          ),
+        },
         'Masz wolne',
       ),
       h(
@@ -387,7 +407,7 @@ export function renderToday(model: Model, state: AppState): HTMLElement {
     h('p', {class: cx('font-medium', MUTED)}, `Cześć, ${model.person}`),
     h(
       'h1',
-      {class: 'text-3xl font-extrabold tracking-tight'},
+      {class: PAGE_TITLE},
       week ? formatWeekRange(week.start, week.end) : 'Ten tydzień',
     ),
   );
@@ -421,16 +441,24 @@ export function renderToday(model: Model, state: AppState): HTMLElement {
     {class: 'grid grid-cols-1 gap-5'},
     header,
     ...banners(model, state),
-    ...(mine.length
-      ? mine.map(task => heroCard(model, state, week, task))
-      : [freeCard()]),
     h(
-      'section',
-      {class: 'grid grid-cols-1 gap-3'},
-      sectionTitle('Wszyscy w tym tygodniu'),
-      progress(state, week),
-      everyoneList(model, state, week),
+      'div',
+      {class: 'grid grid-cols-1 items-start gap-5 md:grid-cols-2 md:gap-6'},
+      h(
+        'div',
+        {class: 'grid grid-cols-1 gap-5'},
+        ...(mine.length
+          ? mine.map(task => heroCard(model, state, week, task))
+          : [freeCard()]),
+        nextWeekTeaser(model, state, week),
+      ),
+      h(
+        'section',
+        {class: 'grid grid-cols-1 gap-3'},
+        sectionTitle('Wszyscy w tym tygodniu'),
+        progress(state, week),
+        everyoneList(model, state, week),
+      ),
     ),
-    nextWeekTeaser(model, state, week),
   );
 }

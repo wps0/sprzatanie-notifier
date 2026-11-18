@@ -46,7 +46,7 @@ function tabBar(active: Route): HTMLElement {
       'ul',
       {
         class: cx(
-          'mx-auto flex max-w-md gap-1 rounded-full bg-white/85 p-1.5',
+          'mx-auto flex max-w-md gap-1 rounded-full bg-white/85 p-1.5 lg:max-w-lg',
           'shadow-xl shadow-stone-900/10 ring-1 ring-stone-200/80',
           'backdrop-blur-xl dark:bg-stone-900/85 dark:ring-stone-800',
         ),
@@ -94,10 +94,15 @@ function toast(message: string): HTMLElement {
   );
 }
 
+/** Fills a phone; grows with the screen on tablets and computers. */
 const PAGE = cx(
-  'mx-auto max-w-md px-5',
-  'pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-32',
+  'mx-auto w-full max-w-md px-4 min-[400px]:px-5 sm:max-w-2xl sm:px-6',
+  'lg:max-w-5xl lg:px-8',
+  'pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-32 sm:pt-10',
 );
+
+/** Forms read best in a narrow column, whatever the screen. */
+const NARROW = 'mx-auto w-full max-w-md';
 
 function render(): void {
   const root = document.getElementById('app');
@@ -106,7 +111,9 @@ function render(): void {
   const onboarding = renderOnboarding(model);
   const children: Array<HTMLElement | null> = [];
   if (onboarding || !model.state) {
-    children.push(h('main', {class: PAGE}, onboarding));
+    children.push(
+      h('main', {class: PAGE}, h('div', {class: NARROW}, onboarding)),
+    );
   } else {
     const route = currentRoute();
     const view =

@@ -7,6 +7,7 @@ import {
   avatar,
   button,
   MUTED,
+  PAGE_TITLE,
   personColor,
   sectionTitle,
   SURFACE,
@@ -100,7 +101,7 @@ function table(model: Model, state: AppState): HTMLElement {
         },
         h(
           'span',
-          {class: 'block max-w-24 truncate'},
+          {class: 'block max-w-24 truncate lg:max-w-36'},
           task.free ? 'Wolne' : capitalize(task.title),
         ),
       ),
@@ -138,7 +139,7 @@ function table(model: Model, state: AppState): HTMLElement {
               'span',
               {
                 class: cx(
-                  'inline-block max-w-24 truncate rounded-full px-2.5 py-1',
+                  'inline-block max-w-24 truncate rounded-full px-2.5 py-1 lg:max-w-36',
                   'align-middle text-xs font-semibold',
                   personColor(person, people),
                   person === model.person &&
@@ -201,47 +202,63 @@ export function renderSchedule(
         {class: cx('font-medium', MUTED)},
         `Ostatnia synchronizacja: ${synced}`,
       ),
-      h('h1', {class: 'text-3xl font-extrabold tracking-tight'}, 'Grafik'),
-    ),
-    upcoming(model, state),
-    h(
-      'section',
-      {class: 'grid grid-cols-1 gap-3'},
-      sectionTitle('Cały grafik'),
-      legend(state),
-      table(model, state),
-      hasPast &&
-        button(showPast ? 'Ukryj minione tygodnie' : 'Pokaż minione tygodnie', {
-          variant: 'ghost',
-          onclick: () => {
-            showPast = !showPast;
-            rerender();
-          },
-        }),
+      h('h1', {class: PAGE_TITLE}, 'Grafik'),
     ),
     h(
-      'section',
-      {class: 'grid grid-cols-1 gap-2.5'},
-      button('Odśwież z arkusza', {
-        variant: 'soft',
-        icon: 'refresh',
-        busy: model.busy.has('refresh'),
-        onclick: () => void refreshSheet(),
-      }),
+      'div',
+      {
+        class: cx(
+          'grid grid-cols-1 items-start gap-5',
+          'lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-6',
+        ),
+      },
       h(
-        'a',
-        {
-          href: state.sheet.url,
-          target: '_blank',
-          rel: 'noopener noreferrer',
-          class: cx(
-            'inline-flex min-h-12 items-center justify-center gap-2',
-            'rounded-2xl px-5 py-3 font-semibold text-stone-600 transition',
-            'hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800',
+        'div',
+        {class: 'grid grid-cols-1 gap-5'},
+        upcoming(model, state),
+        h(
+          'section',
+          {class: 'grid grid-cols-1 gap-2.5'},
+          button('Odśwież z arkusza', {
+            variant: 'soft',
+            icon: 'refresh',
+            busy: model.busy.has('refresh'),
+            onclick: () => void refreshSheet(),
+          }),
+          h(
+            'a',
+            {
+              href: state.sheet.url,
+              target: '_blank',
+              rel: 'noopener noreferrer',
+              class: cx(
+                'inline-flex min-h-12 items-center justify-center gap-2',
+                'rounded-2xl px-5 py-3 font-semibold text-stone-600 transition',
+                'hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800',
+              ),
+            },
+            icon('external', 'size-5'),
+            'Otwórz arkusz w Excelu',
           ),
-        },
-        icon('external', 'size-5'),
-        'Otwórz arkusz w Excelu',
+        ),
+      ),
+      h(
+        'section',
+        {class: 'grid grid-cols-1 gap-3'},
+        sectionTitle('Cały grafik'),
+        legend(state),
+        table(model, state),
+        hasPast &&
+          button(
+            showPast ? 'Ukryj minione tygodnie' : 'Pokaż minione tygodnie',
+            {
+              variant: 'ghost',
+              onclick: () => {
+                showPast = !showPast;
+                rerender();
+              },
+            },
+          ),
       ),
     ),
   );
