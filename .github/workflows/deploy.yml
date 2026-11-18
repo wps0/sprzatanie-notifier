@@ -1,0 +1,73 @@
+name: Deploy to GitHub Pages
+
+# Only main is ever published. The site's origin holds the flat code (in
+# localStorage and in the service worker's cache), which unlocks the API, so
+# unreviewed code must never reach it. Pull requests and other branches don't
+# trigger this workflow at all; a manual run from another branch builds and
+# tests it but skips the deploy.
+#
+# This file can't protect itself: a branch can carry its own edited copy. The
+# real guard is the `github-pages` environment, which must be limited to `main`
+# (Settings → Environments → github-pages → Deployment branches and tags).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Nothing by default; each job asks for what it needs.
+permissions: {}
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Runs the build, so it gets no Pages or OIDC rights.
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      # Install scripts are skipped: nothing the build needs relies on them.
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm test
+      # Only a repository variable reaches this job: an environment variable
+      # of github-pages is visible to the deploy job alone, and a secret isn't
+      # a variable. Unlike an optional setting, the app cannot work without
+      # it: on Pages there is no API on the site's own origin.
+      - name: Fail if the API base URL variable is missing
+        if: vars.API_BASE_URL == ''
+        run: |
+          echo "::error title=No API base URL::The repository variable API_BASE_URL is empty, so the app would call an API that does not exist on GitHub Pages. Set it to the Cloudflare Worker's address under Settings → Secrets and variables → Actions → Variables → Repository variables (not a secret, not an environment variable), then run this workflow again."
+          exit 1
+      - run: npm run build
+        env:
+          # Not a secret: the address is public, and the API answers only
+          # requests that carry the flat code and come from ALLOWED_ORIGINS.
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

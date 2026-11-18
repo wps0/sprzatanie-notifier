@@ -11,6 +11,7 @@
     "build": "node scripts/build.ts",
     "dev": "node scripts/dev-server.ts",
     "format": "prettier --write \"src/**/*.{ts,css}\" \"test/**/*.ts\" \"scripts/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.{ts,css}\" \"test/**/*.ts\" \"scripts/**/*.ts\"",
     "gen:code": "node scripts/gen-flat-code.ts",
     "gen:vapid": "node scripts/gen-vapid.js",
     "dev:worker": "npm run build && wrangler dev",

@@ -40,10 +40,15 @@ na GitHub Pages, a API zostać na Cloudflare:
 
 1. W ustawieniach repozytorium: **Pages → Source: GitHub Actions**. Pages z prywatnego
    repozytorium wymagają płatnego planu GitHuba.
-2. **Settings → Secrets and variables → Actions → Variables**: dodaj `API_BASE_URL`
-   z adresem Workera, np. `https://sprzatanie.<konto>.workers.dev`.
-3. W `wrangler.jsonc` ustaw `ALLOWED_ORIGINS` na `https://<użytkownik>.github.io`
+2. **Settings → Environments → github-pages → Deployment branches and tags**: ogranicz
+   do `main`. To jest właściwe zabezpieczenie — sam plik workflow może zostać zmieniony
+   na dowolnej gałęzi.
+3. **Settings → Secrets and variables → Actions → Variables → Repository variables**:
+   dodaj `API_BASE_URL` z adresem Workera, np. `https://sprzatanie.<konto>.workers.dev`
+   (zmienna repozytorium, nie sekret i nie zmienna środowiska).
+4. W `wrangler.jsonc` ustaw `ALLOWED_ORIGINS` na `https://<użytkownik>.github.io`
    i wdróż Workera ponownie.
-4. Każdy push do `main` uruchamia `.github/workflows/pages.yml`: testy, budowanie, publikacja.
+5. Każdy push do `main` uruchamia `.github/workflows/deploy.yml`: typy, formatowanie,
+   testy, budowanie i publikacja. Ręczne uruchomienie z innej gałęzi tylko buduje i testuje.
 
 Kod mieszkania nie trafia na Pages — strona jest publiczna, ale bez kodu API nic nie zwraca.
