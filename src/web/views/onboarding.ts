@@ -242,14 +242,30 @@ function notificationsStep(model: Model): HTMLElement {
   );
 }
 
-/** Returns the onboarding step to show, or null when onboarding is over. */
-export function renderOnboarding(model: Model): HTMLElement | null {
-  if (!model.code) return codeStep(model);
-  if (!model.state) return loadingStep(model);
+export type OnboardingStep = 'code' | 'loading' | 'person' | 'notifications';
+
+/** The onboarding step to show, or null when onboarding is over. */
+export function onboardingStep(model: Model): OnboardingStep | null {
+  if (!model.code) return 'code';
+  if (!model.state) return 'loading';
   const {people} = model.state.schedule;
-  if (!model.person || !people.includes(model.person)) {
-    return personStep(model.state);
-  }
-  if (!model.onboardingDone) return notificationsStep(model);
+  if (!model.person || !people.includes(model.person)) return 'person';
+  if (!model.onboardingDone) return 'notifications';
   return null;
+}
+
+/** Renders the current onboarding step, or null when onboarding is over. */
+export function renderOnboarding(model: Model): HTMLElement | null {
+  switch (onboardingStep(model)) {
+    case 'code':
+      return codeStep(model);
+    case 'loading':
+      return loadingStep(model);
+    case 'person':
+      return personStep(model.state!);
+    case 'notifications':
+      return notificationsStep(model);
+    default:
+      return null;
+  }
 }

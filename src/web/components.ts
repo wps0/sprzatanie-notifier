@@ -4,6 +4,7 @@ import type {TaskStatus} from '../shared/types.ts';
 import type {IconName} from './dom.ts';
 import {cx, h, icon} from './dom.ts';
 import {initials} from './format.ts';
+import {animate, POP_MS} from './motion.ts';
 
 /** A white surface with a hairline border, without padding. */
 export const SURFACE = cx(
@@ -144,9 +145,12 @@ const STATUS_STYLES: Readonly<Record<TaskStatus, string>> = {
   ),
 };
 
-/** The status as text; colour only supports it. */
-export function statusPill(status: TaskStatus): HTMLElement {
-  return h(
+/**
+ * The status as text; colour only supports it. `doneKey` names the
+ * animation that pops the pill when the task has just been marked done.
+ */
+export function statusPill(status: TaskStatus, doneKey?: string): HTMLElement {
+  const pill = h(
     'span',
     {
       class: cx(
@@ -158,6 +162,10 @@ export function statusPill(status: TaskStatus): HTMLElement {
     status === 'done' && icon('check', 'size-3.5'),
     STATUS_LABELS[status],
   );
+  if (status === 'done' && doneKey) {
+    animate(pill, doneKey, 'motion-safe:animate-pop', POP_MS);
+  }
+  return pill;
 }
 
 export type BannerTone = 'warning' | 'info';
@@ -215,6 +223,7 @@ export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
       class: cx(
         'm-auto w-[min(92vw,24rem)] rounded-3xl bg-white p-6 text-stone-900',
         'shadow-2xl dark:bg-stone-900 dark:text-stone-100',
+        'motion-safe:animate-dialog-in',
       ),
     });
     const close = (answer: boolean) => {

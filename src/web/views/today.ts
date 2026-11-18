@@ -23,6 +23,14 @@ import {
 } from '../components.ts';
 import {cx, h, icon} from '../dom.ts';
 import {
+  animate,
+  doneKey,
+  GROW_MS,
+  POP_MS,
+  progressOf,
+  trigger,
+} from '../motion.ts';
+import {
   capitalize,
   formatDeadline,
   formatTimestamp,
@@ -82,6 +90,42 @@ function glow(): HTMLElement {
   });
 }
 
+/**
+ * Lets a card morph into its new state when a task status changes. The name
+ * takes effect only during status transitions (see style.css), so on screen
+ * changes the card moves with the rest of the page.
+ */
+function morphs(element: HTMLElement, name: string): void {
+  element.dataset['morph'] = '';
+  element.style.setProperty('--morph-name', name);
+}
+
+/** What the progress bar shows and where it is heading. */
+let progressBar = {from: 0, to: 0};
+
+/** Approximates the `grow` timing curve, to know where the bar is now. */
+function easeOut(t: number): number {
+  return 1 - (1 - t) ** 3;
+}
+
+/** Sizes the bar; a new value animates from wherever the bar is. */
+function growTo(fill: HTMLElement, percent: number): void {
+  if (percent !== progressBar.to) {
+    const running = progressOf('progress', GROW_MS);
+    const current =
+      running === null
+        ? progressBar.to
+        : progressBar.from +
+          (progressBar.to - progressBar.from) * easeOut(running);
+    progressBar = {from: current, to: percent};
+    trigger('progress');
+  }
+  fill.style.width = `${percent}%`;
+  fill.style.setProperty('--from', `${progressBar.from}%`);
+  fill.style.setProperty('--to', `${percent}%`);
+  animate(fill, 'progress', 'motion-safe:animate-grow', GROW_MS);
+}
+
 function heroCard(model: Model, state: AppState, week: Week, task: Task) {
   const status: TaskStatus = entryFor(state, week, task)?.status ?? 'pending';
   const busy = model.busy.has(`status:${task.key}`);
@@ -126,7 +170,16 @@ function heroCard(model: Model, state: AppState, week: Week, task: Task) {
         ? 'Przyjęte — przypomnienia wyciszone'
         : 'Twoje zadanie w tym tygodniu';
 
-  return h(
+  const check = status === 'done' && icon('check', 'size-5');
+  if (check) {
+    animate(
+      check,
+      doneKey(week.start, task.key),
+      'motion-safe:animate-pop',
+      POP_MS,
+    );
+  }
+  const card = h(
     'section',
     {class: cx(HERO_BASE, HERO_TONES[status])},
     onColor && glow(),
@@ -141,7 +194,7 @@ function heroCard(model: Model, state: AppState, week: Week, task: Task) {
             onColor ? 'text-white/80' : 'text-emerald-600',
           ),
         },
-        status === 'done' && icon('check', 'size-5'),
+        check,
         overline,
       ),
       h(
@@ -184,10 +237,12 @@ function heroCard(model: Model, state: AppState, week: Week, task: Task) {
         ),
     ),
   );
+  morphs(card, `hero-${task.key}`);
+  return card;
 }
 
 function freeCard(): HTMLElement {
-  return h(
+  const card = h(
     'section',
     {
       class: cx(
@@ -218,6 +273,8 @@ function freeCard(): HTMLElement {
       ),
     ),
   );
+  morphs(card, 'hero-free');
+  return card;
 }
 
 function progress(state: AppState, week: Week): HTMLElement {
@@ -226,10 +283,8 @@ function progress(state: AppState, week: Week): HTMLElement {
     task => entryFor(state, week, task)?.status === 'done',
   ).length;
   const percent = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
-  const fill = h('div', {
-    class: 'h-full rounded-full bg-emerald-500 transition-all',
-  });
-  fill.style.width = `${percent}%`;
+  const fill = h('div', {class: 'h-full rounded-full bg-emerald-500'});
+  growTo(fill, percent);
   return h(
     'div',
     {class: 'flex items-center gap-3 px-1'},
@@ -283,7 +338,7 @@ function everyoneList(model: Model, state: AppState, week: Week) {
           (mine ? 'Ty' : (person ?? 'Nikt')) + markedByOther,
         ),
       ),
-      !task.free && statusPill(status),
+      !task.free && statusPill(status, doneKey(week.start, task.key)),
     ];
     const rowClass = cx(
       'flex w-full items-center gap-3 px-4 py-3',
