@@ -11,7 +11,7 @@
       "binding": "DB",
       "database_name": "sprzatanie",
       // Replace with the id printed by `npx wrangler d1 create sprzatanie`.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "2e65c663-9f52-40e5-9d04-f874915c16d6",
       "migrations_dir": "migrations"
     }
   ],
@@ -20,9 +20,9 @@
   "vars": {
     "TIMEZONE": "Europe/Warsaw",
     // Public half of the key pair from `npm run gen:vapid`.
-    "VAPID_PUBLIC_KEY": "",
+    "VAPID_PUBLIC_KEY": "BG1HIIByez0sz1V2-LLOnJNZ2h51sJgIVMDWFnKN1zrFbkTLX2Ih2_ZPV4O-kyba96dMatL4tDVa0z1GeUskduY",
     // The app's address, e.g. https://sprzatanie.<account>.workers.dev
-    "VAPID_SUBJECT": "",
+    "VAPID_SUBJECT": "https://sprzatanie.wieczoreksp.workers.dev",
     // Comma-separated origins of a separately hosted web app, if any.
     "ALLOWED_ORIGINS": ""
   },
