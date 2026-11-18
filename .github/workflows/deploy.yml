@@ -1,0 +1,126 @@
+name: Deploy the Worker to Cloudflare
+
+# Deploys the whole app (API and web app) when a pull request is merged into
+# main, and at no other time: there is no manual trigger, and pull requests and
+# other branches don't run this workflow at all. Require pull requests for main
+# (Settings → Rules → Rulesets) so that every push to main is a merge.
+#
+# The Worker holds the flat code, the sheet link and the VAPID private key (as
+# Cloudflare secrets) and sends pushes to every phone in the flat, so
+# unreviewed code must never reach it.
+#
+# This file can't protect itself: a branch can carry its own edited copy. The
+# real guard is the `cloudflare` environment, which must be limited to `main`
+# (Settings → Environments → cloudflare → Deployment branches and tags) and is
+# the only place that holds the Cloudflare API token.
+#
+# One-time setup: docs/DEPLOYMENT.md.
+on:
+  push:
+    branches: [main]
+
+# Nothing by default; each job asks for what it needs.
+permissions: {}
+
+# Never cancel a deploy half-way: it may be applying a database migration.
+concurrency:
+  group: cloudflare
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Runs the type checker, the tests and the build. It never sees the
+    # Cloudflare token: environment secrets reach only the deploy job.
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      # Install scripts are skipped: nothing the build needs relies on them.
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm test
+      # The Worker serves the app itself, so the API is on the same origin and
+      # API_BASE_URL stays empty.
+      - run: npm run build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-app
+          path: dist
+          retention-days: 1
+          if-no-files-found: error
+
+  deploy:
+    needs: build
+    # Redundant with the trigger above; kept in case a trigger is ever added.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    # Only Wrangler runs here with the token; the build ran in the job above.
+    permissions:
+      contents: read
+    environment:
+      name: cloudflare
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: web-app
+          path: dist
+
+      - name: Check the Cloudflare credentials
+        if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
+        run: |
+          echo "::error title=No Cloudflare credentials::Add the secret CLOUDFLARE_API_TOKEN and the variable CLOUDFLARE_ACCOUNT_ID to the cloudflare environment (Settings → Environments → cloudflare). See docs/DEPLOYMENT.md."
+          exit 1
+
+      # wrangler.jsonc ships with placeholders; deploying them would replace a
+      # working configuration with an empty one.
+      - name: Check wrangler.jsonc
+        run: |
+          status=0
+          if grep -q '"database_id": "00000000-0000-0000-0000-000000000000"' wrangler.jsonc; then
+            echo "::error file=wrangler.jsonc,title=Placeholder database_id::Put the id printed by 'npx wrangler d1 create sprzatanie' into wrangler.jsonc."
+            status=1
+          fi
+          for name in VAPID_PUBLIC_KEY VAPID_SUBJECT; do
+            if grep -q "\"$name\": \"\"" wrangler.jsonc; then
+              echo "::error file=wrangler.jsonc,title=Empty $name::Fill in $name in wrangler.jsonc (it is not a secret). See docs/DEPLOYMENT.md."
+              status=1
+            fi
+          done
+          exit $status
+
+      # Secrets live on Cloudflare, not in GitHub, and survive deploys. A
+      # Worker without them would answer every request with an error.
+      - name: Check the Worker's secrets
+        run: |
+          npx wrangler secret list --format json > "$RUNNER_TEMP/secrets.json"
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const names = JSON.parse(readFileSync(process.argv[1], "utf8")).map(s => s.name);
+            const missing = ["FLAT_CODE", "SHEET_URL", "VAPID_PRIVATE_KEY"].filter(n => !names.includes(n));
+            if (missing.length) {
+              console.log(`::error title=Missing Worker secrets::Set ${missing.join(", ")} with "npx wrangler secret put <NAME>". See docs/DEPLOYMENT.md.`);
+              process.exit(1);
+            }
+          ' "$RUNNER_TEMP/secrets.json"
+
+      - run: npx wrangler d1 migrations apply sprzatanie --remote
+      - run: npx wrangler deploy

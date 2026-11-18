@@ -30,5 +30,6 @@ npm test && npm run typecheck
 
 ## Wdrożenie
 
-Kroki są w [docs/IMPLEMENTATION_PLAN.md §9](docs/IMPLEMENTATION_PLAN.md); `npm run deploy`
-buduje aplikację i wdraża ją razem z Workerem.
+Cała aplikacja działa na jednym Cloudflare Workerze. Po jednorazowej konfiguracji
+([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)) wdraża ją GitHub Actions przy każdym merge'u
+do `main`.
