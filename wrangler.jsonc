@@ -3,6 +3,9 @@
   "name": "sprzatanie",
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-11-01",
+  // The web app, built by `npm run build`. Requests that match no file
+  // (that is, /api/*) go to the Worker.
+  "assets": {"directory": "./dist"},
   "d1_databases": [
     {
       "binding": "DB",
