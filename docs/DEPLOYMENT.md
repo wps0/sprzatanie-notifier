@@ -13,7 +13,51 @@ Workflow w kolejności:
 4. Wykonuje migracje bazy D1.
 5. Wdraża Workera.
 
-## Jednorazowa konfiguracja
+## Najszybciej: skrypt w Podmanie
+
+`scripts/setup/podman.sh` wykonuje kroki 1–3 w jednorazowym kontenerze z Node 26
+(obraz przypięty do digestu). Na Twoim komputerze nie uruchamia się nic z npm —
+potrzebujesz tylko [Podmana](https://podman.io/docs/installation) i tego repozytorium.
+
+1. Załóż darmowe konto na <https://dash.cloudflare.com/sign-up> i utwórz token API
+   (krok 4 niżej). Zanotuj token i Account ID.
+2. Uruchom w katalogu repozytorium:
+
+   ```bash
+   scripts/setup/podman.sh
+   ```
+
+   Skrypt zapyta o:
+   - token i Account ID — możesz też je podać w zmiennych `CLOUDFLARE_API_TOKEN`
+     i `CLOUDFLARE_ACCOUNT_ID`;
+   - subdomenę `workers.dev`, jeśli konto jeszcze jej nie ma;
+   - link do arkusza.
+
+   Potem:
+   - tworzy bazę D1 i wpisuje jej `database_id`, adres i klucz publiczny do `wrangler.jsonc`;
+   - zapisuje sekrety Workera (kod mieszkania, link do arkusza, klucz prywatny VAPID);
+   - wykonuje migracje bazy;
+   - wypisuje link dla współlokatorów.
+
+   **Kod mieszkania widać tylko raz, w tym linku.**
+3. Wypuść zmieniony `wrangler.jsonc` pull requestem.
+4. Skonfiguruj GitHuba (krok 5 niżej) i zmerguj — GitHub wdroży aplikację.
+
+Skrypt można uruchamiać wielokrotnie: pomija to, co już istnieje, i nie nadpisuje sekretów.
+Opcje:
+
+- `--new-code` — nowy kod mieszkania; wszyscy muszą wejść przez nowy link;
+- `--new-sheet-url` — podmiana linku do arkusza;
+- `--deploy` — wdrożenie od razu, bez czekania na merge.
+
+Zależności instalują się do wolumenu `sprzatanie-setup-node-modules`. Gdy nie będzie
+już potrzebny, usuwasz go tak:
+
+```bash
+podman volume rm sprzatanie-setup-node-modules
+```
+
+## Ręcznie (bez Podmana)
 
 Kroki 1–4 wykonujesz raz, na swoim komputerze, w katalogu repozytorium (`npm ci` najpierw).
 
