@@ -15,7 +15,9 @@ Kontekst: `docs/DESIGN.md` (decyzje i ich uzasadnienie), potem `docs/IMPLEMENTAT
   Importy wskazują pliki z rozszerzeniem (`./store.ts`).
 - Wygląd: klasy Tailwind CSS bezpośrednio w widokach. Każdą zmianę UI obejrzyj na zrzucie
   ekranu 390×844 w motywie jasnym i ciemnym (`npm run build && npm run dev`).
-- Moduły `src/core/*.js` są zweryfikowane; zostaną przepisane na TypeScript w osobnym PR.
+- Cały kod, testy i skrypty są w TypeScript; plików `.js` w repozytorium nie ma.
+- `src/core/webpush.ts` składa prymitywy WebCrypto według RFC 8291/8292; każdą zmianę
+  sprawdzają testy z przykładem z RFC i porównaniem bajt w bajt z `http_ece`.
 - Nazwy w kodzie, API i adresach po angielsku; po polsku tylko teksty dla użytkownika.
 
 ## Zasady, których nie wolno łamać

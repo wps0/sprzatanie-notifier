@@ -2,11 +2,11 @@
 
 import {readFile} from 'node:fs/promises';
 
-import {generateVapidKeys} from '../../src/core/webpush.js';
+import {generateVapidKeys} from '../../src/core/webpush.ts';
 import {handleRequest} from '../../src/worker/app.ts';
 import type {Deps, Env} from '../../src/worker/env.ts';
 import type {Database} from '../../src/worker/store.ts';
-import {createD1} from './d1.js';
+import {createD1} from './d1.ts';
 
 export const CODE = 'test-code-1234';
 const SHEET_URL = 'https://tenant-my.sharepoint.com/:x:/g/personal/x/TOKEN';
@@ -61,7 +61,7 @@ export async function createHarness(nowIso: string): Promise<Harness> {
     FLAT_CODE: CODE,
     SHEET_URL,
     VAPID_PUBLIC_KEY: vapid.publicKey,
-    VAPID_PRIVATE_KEY: vapid.privateKey ?? '',
+    VAPID_PRIVATE_KEY: vapid.privateKey,
     VAPID_SUBJECT: 'https://example.org',
     ALLOWED_ORIGINS: 'https://pages.example',
   };

@@ -6,14 +6,14 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "test": "node --test \"test/*.test.js\" \"test/*.test.ts\"",
+    "test": "node --test \"test/*.test.ts\"",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.web.json --noEmit && tsc -p tsconfig.sw.json --noEmit",
     "build": "node scripts/build.ts",
     "dev": "node scripts/dev-server.ts",
     "format": "prettier --write \"src/**/*.{ts,css}\" \"test/**/*.ts\" \"scripts/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.{ts,css}\" \"test/**/*.ts\" \"scripts/**/*.ts\"",
     "gen:code": "node scripts/gen-flat-code.ts",
-    "gen:vapid": "node scripts/gen-vapid.js",
+    "gen:vapid": "node scripts/gen-vapid.ts",
     "dev:worker": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy"
   },

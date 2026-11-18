@@ -1,9 +1,10 @@
 # Plan implementacji
 
-> **Stan (listopad 2026):** M1–M5 są zaimplementowane w TypeScript: serwer
-> w `src/worker/`, aplikacja webowa w `src/web/` (Tailwind CSS zamiast Bootstrapa;
-> sekcje o wyglądzie i o `public/vendor/` są nieaktualne), service worker w `src/sw/`. Ten dokument zapisuje pierwotne
-> ustalenia; tam, gdzie kod się od niego różni, rozstrzyga kod i `DESIGN.md`.
+> **Stan (listopad 2026):** M1–M5 są zaimplementowane, a cały kod jest w TypeScript:
+> serwer w `src/worker/`, logika w `src/core/`, aplikacja webowa w `src/web/` (Tailwind CSS
+> zamiast Bootstrapa), service worker w `src/sw/`. Ścieżki `*.js`, sekcje o wyglądzie
+> i o `public/vendor/` poniżej są nieaktualne. Ten dokument zapisuje pierwotne ustalenia;
+> tam, gdzie kod się od niego różni, rozstrzyga kod i `DESIGN.md`.
 
 Dokument dla wykonawcy (człowieka lub modelu), który nie zna wcześniejszych ustaleń.
 Uzasadnienia decyzji są w [DESIGN.md](DESIGN.md) — przeczytaj go najpierw, zwłaszcza §1 i §3.

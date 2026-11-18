@@ -1,9 +1,9 @@
 /** @fileoverview One function per API endpoint. */
 
 import {DEFAULT_RULES, validateRules} from '../core/reminders.ts';
-import {addDays} from '../core/schedule.js';
-import {localParts} from '../core/time.js';
-import {b64url} from '../core/webpush.js';
+import {addDays} from '../core/schedule.ts';
+import {localParts} from '../core/time.ts';
+import {b64url} from '../core/webpush.ts';
 import type {
   AppState,
   NotificationPayload,
