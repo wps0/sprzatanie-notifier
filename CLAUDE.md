@@ -13,6 +13,10 @@ Kontekst: `docs/DESIGN.md` (decyzje i ich uzasadnienie), potem `docs/IMPLEMENTAT
 - TypeScript uruchamia się bez kroku budowania: Node usuwa typy, Wrangler bundluje Workera.
   Aplikację webową (`src/web`, `src/sw`) kompiluje `npm run build` do `dist/`.
   Importy wskazują pliki z rozszerzeniem (`./store.ts`).
+- Animacje: DOM jest przebudowywany przy każdej zmianie modelu, więc zwykła animacja CSS
+  restartowałaby się. Zmiany ekranu i stanu zadań animuje View Transitions API
+  (`src/web/main.ts`); drobne animacje idą przez `trigger()`/`animate()` z `src/web/motion.ts`.
+  Wszystko z prefiksem `motion-safe:` — przy „ogranicz ruch” nic się nie rusza.
 - Wygląd: klasy Tailwind CSS bezpośrednio w widokach. Każdą zmianę UI obejrzyj na zrzucie
   ekranu 390×844 w motywie jasnym i ciemnym (`npm run build && npm run dev`).
 - Cały kod, testy i skrypty są w TypeScript; plików `.js` w repozytorium nie ma.

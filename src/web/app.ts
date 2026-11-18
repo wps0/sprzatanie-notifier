@@ -11,6 +11,7 @@ import type {
   TaskStatusEntry,
 } from '../shared/types.ts';
 import * as api from './api.ts';
+import {doneKey, trigger} from './motion.ts';
 import type {PushSupport} from './push.ts';
 import * as push from './push.ts';
 import {readItem, writeItem, writeWorkerConfig} from './storage.ts';
@@ -87,6 +88,7 @@ function update(patch: Partial<Model>): void {
 
 export function showToast(message: string): void {
   window.clearTimeout(toastTimer);
+  trigger('toast');
   update({toast: message});
   toastTimer = window.setTimeout(() => update({toast: null}), TOAST_MS);
 }
@@ -307,6 +309,7 @@ export async function setTaskStatus(
   const updatedBy = knownPerson();
   if (!code || !state || !updatedBy) return;
   const before = state.statuses;
+  if (status === 'done') trigger(doneKey(weekStart, taskKey));
   await withBusy(`status:${taskKey}`, async () => {
     const optimistic = withStatus(
       before,
