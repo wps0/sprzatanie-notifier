@@ -9,6 +9,8 @@ import {createHash} from 'node:crypto';
 import {cp, readdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {join, relative, sep} from 'node:path';
 
+import {normalizeApiBaseUrl, prepareIndexHtml} from './html.ts';
+
 const OUT_DIR = 'dist';
 const BIN_DIR = join('node_modules', '.bin');
 /** Never precached: the worker itself and files only the host reads. */
@@ -43,14 +45,11 @@ run('tailwindcss', [
 
 // When the web app is hosted away from the API (for example on GitHub
 // Pages), API_BASE_URL names the Worker and is allowed in the CSP.
-const apiBaseUrl = (process.env['API_BASE_URL'] ?? '').replace(/\/+$/, '');
-const apiOrigin = apiBaseUrl ? ` ${new URL(apiBaseUrl).origin}` : '';
-const html = (await readFile('src/web/index.html', 'utf8'))
-  .replace(
-    '<meta name="api-base-url" content="" />',
-    `<meta name="api-base-url" content="${apiBaseUrl}" />`,
-  )
-  .replace("connect-src 'self'", `connect-src 'self'${apiOrigin}`);
+const apiBaseUrl = normalizeApiBaseUrl(process.env['API_BASE_URL']);
+const html = prepareIndexHtml(
+  await readFile('src/web/index.html', 'utf8'),
+  apiBaseUrl,
+);
 await writeFile(join(OUT_DIR, 'index.html'), html);
 await cp('src/web/static', OUT_DIR, {recursive: true});
 

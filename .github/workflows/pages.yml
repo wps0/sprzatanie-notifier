@@ -1,0 +1,71 @@
+# Builds the web app and publishes it on GitHub Pages. The API stays on the
+# Cloudflare Worker; set the repository variable API_BASE_URL to its address
+# (Settings → Secrets and variables → Actions → Variables) and add the Pages
+# origin to the Worker's ALLOWED_ORIGINS.
+#
+# Actions are pinned to full commit SHAs; the comment names the release.
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      # No install scripts: nothing here needs them.
+      - run: npm ci --ignore-scripts
+
+      - run: npm test
+
+      - run: npm run typecheck
+
+      - name: Check API_BASE_URL
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::error::Set the repository variable API_BASE_URL to the Worker's address."
+            exit 1
+          fi
+
+      - run: npm run build
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

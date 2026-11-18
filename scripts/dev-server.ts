@@ -5,7 +5,8 @@
  *
  * Usage: npm run build && npm run dev
  * Then open http://localhost:8787/?code=dev
- * DEV_NOW=2026-11-11T12:00:00Z pins the clock.
+ * DEV_NOW=2026-11-11T12:00:00Z pins the clock. ALLOWED_ORIGINS lets a web
+ * app served from another origin (a GitHub Pages preview) call the API.
  */
 
 import {readFile} from 'node:fs/promises';
@@ -40,6 +41,7 @@ const env: Env = {
   VAPID_PUBLIC_KEY: vapid.publicKey,
   VAPID_PRIVATE_KEY: vapid.privateKey ?? '',
   VAPID_SUBJECT: 'https://localhost',
+  ALLOWED_ORIGINS: process.env['ALLOWED_ORIGINS'] ?? '',
 };
 const deps: Deps = {
   now: () => Date.now() + offset,

@@ -32,3 +32,18 @@ npm test && npm run typecheck
 
 Kroki są w [docs/IMPLEMENTATION_PLAN.md §9](docs/IMPLEMENTATION_PLAN.md); `npm run deploy`
 buduje aplikację i wdraża ją razem z Workerem.
+
+### Aplikacja na GitHub Pages (opcjonalnie)
+
+Worker sam serwuje aplikację, więc Pages nie są potrzebne. Gdyby jednak strona miała stać
+na GitHub Pages, a API zostać na Cloudflare:
+
+1. W ustawieniach repozytorium: **Pages → Source: GitHub Actions**. Pages z prywatnego
+   repozytorium wymagają płatnego planu GitHuba.
+2. **Settings → Secrets and variables → Actions → Variables**: dodaj `API_BASE_URL`
+   z adresem Workera, np. `https://sprzatanie.<konto>.workers.dev`.
+3. W `wrangler.jsonc` ustaw `ALLOWED_ORIGINS` na `https://<użytkownik>.github.io`
+   i wdróż Workera ponownie.
+4. Każdy push do `main` uruchamia `.github/workflows/pages.yml`: testy, budowanie, publikacja.
+
+Kod mieszkania nie trafia na Pages — strona jest publiczna, ale bez kodu API nic nie zwraca.
