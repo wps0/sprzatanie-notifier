@@ -8,8 +8,8 @@ import type {
   Schedule,
   Task,
 } from '../shared/types.ts';
-import {tasksFor, weekFor} from './schedule.js';
-import {isoWeekday, localParts, slotsBetween} from './time.js';
+import {tasksFor, weekFor} from './schedule.ts';
+import {isoWeekday, localParts, slotsBetween} from './time.ts';
 
 /** Monday morning, Saturday late morning, Sunday evening. */
 export const DEFAULT_RULES: readonly ReminderRule[] = [

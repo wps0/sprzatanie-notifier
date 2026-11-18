@@ -1,8 +1,8 @@
 /** @fileoverview Downloads the workbook and caches the parsed schedule. */
 
-import {buildSchedule} from '../core/schedule.js';
-import {downloadWorkbook} from '../core/sheet-fetch.js';
-import {readFirstSheet} from '../core/xlsx.js';
+import {buildSchedule} from '../core/schedule.ts';
+import {downloadWorkbook} from '../core/sheet-fetch.ts';
+import {readFirstSheet} from '../core/xlsx.ts';
 import type {Schedule} from '../shared/types.ts';
 import type {Deps, Env} from './env.ts';
 import {deleteMeta, getMeta, setMeta} from './store.ts';

@@ -7,9 +7,9 @@ import {
   statusKey,
 } from '../core/reminders.ts';
 import type {Reminder} from '../core/reminders.ts';
-import {addDays} from '../core/schedule.js';
-import {localParts} from '../core/time.js';
-import {b64url, sendPush} from '../core/webpush.js';
+import {addDays} from '../core/schedule.ts';
+import {localParts} from '../core/time.ts';
+import {b64url, sendPush} from '../core/webpush.ts';
 import type {NotificationPayload, ReminderRule} from '../shared/types.ts';
 import type {Deps, Env} from './env.ts';
 import {timeZoneOf} from './env.ts';

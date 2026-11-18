@@ -11,8 +11,8 @@ import {
   ValidationError,
 } from '../src/core/reminders.ts';
 import type {Reminder} from '../src/core/reminders.ts';
-import {buildSchedule} from '../src/core/schedule.js';
-import {readFirstSheet} from '../src/core/xlsx.js';
+import {buildSchedule} from '../src/core/schedule.ts';
+import {readFirstSheet} from '../src/core/xlsx.ts';
 import type {ReminderRule, Schedule} from '../src/shared/types.ts';
 
 const FIXTURE = new URL('./fixtures/grafik.xlsx', import.meta.url);

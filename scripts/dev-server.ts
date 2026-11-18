@@ -13,11 +13,11 @@ import {readFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {extname, join, normalize} from 'node:path';
 
-import {generateVapidKeys} from '../src/core/webpush.js';
+import {generateVapidKeys} from '../src/core/webpush.ts';
 import {handleRequest} from '../src/worker/app.ts';
 import type {Deps, Env} from '../src/worker/env.ts';
 import type {Database} from '../src/worker/store.ts';
-import {createD1} from '../test/helpers/d1.js';
+import {createD1} from '../test/helpers/d1.ts';
 
 const PORT = Number(process.env['PORT'] ?? 8787);
 const SHEET_URL = 'https://dev.sharepoint.com/fixture';
@@ -39,7 +39,7 @@ const env: Env = {
   FLAT_CODE: 'dev',
   SHEET_URL,
   VAPID_PUBLIC_KEY: vapid.publicKey,
-  VAPID_PRIVATE_KEY: vapid.privateKey ?? '',
+  VAPID_PRIVATE_KEY: vapid.privateKey,
   VAPID_SUBJECT: 'https://localhost',
   ALLOWED_ORIGINS: process.env['ALLOWED_ORIGINS'] ?? '',
 };
