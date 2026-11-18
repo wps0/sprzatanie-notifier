@@ -30,6 +30,9 @@ const MONTHS_SHORT = [
   'gru',
 ];
 
+/** Short weekday names, indexed by ISO weekday minus one. */
+export const WEEKDAYS_SHORT = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Ndz'];
+
 /** Indexed by ISO weekday minus one. */
 export const WEEKDAYS = [
   'poniedziałek',

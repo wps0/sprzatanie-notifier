@@ -10,7 +10,14 @@ import {
   loadState,
   submitCode,
 } from '../app.ts';
-import {avatar, button, CARD, MUTED, spinner} from '../components.ts';
+import {
+  avatar,
+  button,
+  CARD,
+  MUTED,
+  PAGE_TITLE,
+  spinner,
+} from '../components.ts';
 import {cx, h, icon} from '../dom.ts';
 
 function frame(
@@ -38,7 +45,7 @@ function frame(
       h(
         'div',
         {},
-        h('h1', {class: 'text-3xl font-extrabold tracking-tight'}, title),
+        h('h1', {class: PAGE_TITLE}, title),
         h('p', {class: cx('mt-1 text-lg text-balance', MUTED)}, subtitle),
       ),
     ),
