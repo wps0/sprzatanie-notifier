@@ -8,7 +8,7 @@ kto co ma w tym tygodniu do zrobienia. Działa na darmowym planie Cloudflare Wor
 
 ## Uruchomienie lokalne
 
-Wymaga Node 22.18 lub nowszego.
+Wymaga Node 26 (wersja w `.nvmrc`).
 
 ```bash
 npm ci

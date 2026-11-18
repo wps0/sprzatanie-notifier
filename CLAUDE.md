@@ -39,7 +39,7 @@ npm ci
 npm test && npm run typecheck
 ```
 
-Muszą przechodzić przed każdym commitem. Wymagany Node ≥ 22.18.
+Muszą przechodzić przed każdym commitem. Wymagany Node 26 (`.nvmrc`; CI czyta wersję z tego pliku).
 
 Czego nie da się zrobić bez właściciela: wdrożenia na Cloudflare i testu powiadomień na
 prawdziwym telefonie. Gdy do tego dojdziesz, zatrzymaj się i podaj mu dokładne kroki.
