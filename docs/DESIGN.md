@@ -138,22 +138,28 @@ tygodnia. Różnią się tylko tym, co widzą pozostali. Każdy stan można cofn
 co przywraca przypomnienia. Zapis do Excela wymagałby logowania do Microsoft Graph, więc
 stan żyje w D1, a arkusz pozostaje tylko do odczytu.
 
-### 9. Frontend: czysty JavaScript + Bootstrap (sam CSS)
+### 9. Frontend: TypeScript bez frameworka + Tailwind CSS
 
-Cztery ekrany nie uzasadniają frameworka JavaScript ani kroku budowania: moduły ES serwowane
-wprost, ręcznie napisany service worker. Za wygląd odpowiada Bootstrap 5.3 — najszerzej znana
-biblioteka CSS, aktywnie rozwijana (wydanie 5.3.9 z 11.11.2026). Bierzemy z niej wyłącznie
-plik `bootstrap.min.css` (232 kB, ok. 31 kB po kompresji), skopiowany do repozytorium
-i serwowany z własnej domeny. JavaScriptu Bootstrapa nie używamy: okna dialogowe to natywny
-`<dialog>`, a motyw jasny/ciemny przełącza kilka linii własnego kodu (`public/theme.js`).
+Cztery ekrany nie uzasadniają frameworka JavaScript. Widoki to funkcje, które z modelu
+budują drzewo DOM (`src/web/dom.ts`: `h()` wstawia dane wyłącznie jako węzły tekstowe)
+i podmieniają zawartość strony przy każdej zmianie. TypeScript kompiluje się `tsc` do
+zwykłych modułów ES, bez bundlera; service worker jest pisany ręcznie.
+
+Wygląd daje Tailwind CSS 4. Biblioteka działa tylko przy budowaniu (`npm run build`)
+i wypluwa jeden statyczny plik CSS (ok. 37 kB) zawierający wyłącznie użyte klasy — na
+telefon nie trafia żaden kod Tailwinda. Motyw jasny i ciemny wynika z ustawień systemu
+(`dark:`), bez skryptu.
+
+Kierunek wizualny: duża, kolorowa karta „Twoje zadanie" (zielona do zrobienia, grafitowa
+po przyjęciu, biała po zrobieniu, niebieska przy wolnym tygodniu), stały kolor przypisany
+każdej osobie w liście i w tabeli grafiku, pływający dolny pasek zakładek i natywny
+`<dialog>` do potwierdzeń.
 
 | Rozważone | Dlaczego nie |
 |---|---|
-| Pico CSS | Brak wydania od marca 2025; uznana za porzuconą |
-| Bulma | Ostatnie wydanie w kwietniu 2025 — ten sam problem |
-| Simple.css | Bezklasowa: za mało na dolny pasek zakładek, znaczniki stanu i listy |
-| Beer CSS | Aktywna, ale mniej znana i z dodatkową zależnością |
-| Tailwind | Wymaga kroku budowania |
+| Bootstrap | Wygląd zbyt generyczny; odrzucony przez właściciela |
+| Pico CSS | Brak wydania od marca 2025 |
+| Framework JS (React, Svelte…) | Bundler, runtime na telefonie i dużo zależności za cztery ekrany |
 
 ### 10. Podgląd arkusza: własna tabela + link do oryginału
 
@@ -166,9 +172,12 @@ Obok przycisk „Otwórz arkusz w Excelu". Osadzenie oryginału w ramce jest zab
 |---|---|---|---|
 | `wrangler` | wdrażanie i lokalne uruchamianie | komputer dewelopera | wiele (oficjalne narzędzie Cloudflare) |
 | `http_ece` 1.2.1 | wzorzec w testach szyfrowania | tylko testy | 0 |
-| `bootstrap` 5.3.9 | wygląd | telefon — sam CSS, kopia w `public/vendor/` | 0 (zależność jego JavaScriptu nie jest instalowana) |
+| `typescript` | sprawdzanie typów, kompilacja aplikacji webowej | komputer dewelopera | 0 |
+| `tailwindcss`, `@tailwindcss/cli` | generowanie CSS przy budowaniu | komputer dewelopera | kilka (natywny kompilator) |
+| `prettier` | formatowanie (konfiguracja jak `gts`) | komputer dewelopera | 0 |
+| `@types/node` | typy Node dla testów i skryptów | komputer dewelopera | 1 |
 
-Na serwer nie trafia żadna paczka npm. Nową zależność dodajemy tylko wtedy, gdy zastępuje
+Ani na serwer, ani na telefon nie trafia żadna paczka npm. Nową zależność dodajemy tylko wtedy, gdy zastępuje
 kod, którego błędu nie umiemy tanio wykryć testem — i tylko znaną, przypiętą do dokładnej
 wersji, nigdy z CDN.
 

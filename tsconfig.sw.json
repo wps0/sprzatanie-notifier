@@ -1,0 +1,20 @@
+{
+  // The service worker is compiled on its own: it runs in a worker scope
+  // (no DOM) and must be served from the site root to control every page.
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2023", "webworker"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": [],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "skipLibCheck": true,
+    "rootDir": "src/sw",
+    "outDir": "dist"
+  },
+  "include": ["src/sw"]
+}

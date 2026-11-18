@@ -11,7 +11,10 @@ Kontekst: `docs/DESIGN.md` (decyzje i ich uzasadnienie), potem `docs/IMPLEMENTAT
   bez `any` (w testach tylko z komentarzem), `readonly` tam, gdzie się da, JSDoc przy
   eksportach. Formatowanie: `npm run format` (Prettier w konfiguracji `gts`).
 - TypeScript uruchamia się bez kroku budowania: Node usuwa typy, Wrangler bundluje Workera.
+  Aplikację webową (`src/web`, `src/sw`) kompiluje `npm run build` do `dist/`.
   Importy wskazują pliki z rozszerzeniem (`./store.ts`).
+- Wygląd: klasy Tailwind CSS bezpośrednio w widokach. Każdą zmianę UI obejrzyj na zrzucie
+  ekranu 390×844 w motywie jasnym i ciemnym (`npm run build && npm run dev`).
 - Moduły `src/core/*.js` są zweryfikowane; zostaną przepisane na TypeScript w osobnym PR.
 - Nazwy w kodzie, API i adresach po angielsku; po polsku tylko teksty dla użytkownika.
 
