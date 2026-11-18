@@ -13,8 +13,21 @@ import {
 const WRANGLER_CONFIG = new URL('../wrangler.jsonc', import.meta.url);
 const DB_ID = '1c0ffee0-0000-4000-8000-000000000001';
 
+/**
+ * The real wrangler.jsonc with the setup-owned values reset to what a fresh
+ * checkout has. The committed file holds the live deployment's values once
+ * the setup has run, and tests must not depend on them.
+ */
+async function templateConfig(): Promise<string> {
+  return writeSetupValues(await readFile(WRANGLER_CONFIG, 'utf8'), {
+    databaseId: PLACEHOLDER_DATABASE_ID,
+    vapidPublicKey: '',
+    vapidSubject: '',
+  });
+}
+
 test('reads and fills the real wrangler.jsonc, keeping everything else', async () => {
-  const config = await readFile(WRANGLER_CONFIG, 'utf8');
+  const config = await templateConfig();
   assert.deepEqual(readSetupValues(config), {
     databaseId: PLACEHOLDER_DATABASE_ID,
     vapidPublicKey: '',
@@ -132,7 +145,7 @@ class FakeCloudflare implements SetupIO {
 }
 
 async function freshAccount(): Promise<FakeCloudflare> {
-  return new FakeCloudflare(await readFile(WRANGLER_CONFIG, 'utf8'));
+  return new FakeCloudflare(await templateConfig());
 }
 
 test('a fresh account is set up completely in one run', async () => {
