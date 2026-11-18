@@ -1,5 +1,9 @@
 # Plan implementacji
 
+> **Stan (listopad 2026):** serwer (M1, M4, M5 po stronie API) jest zaimplementowany
+> w TypeScript w `src/worker/`, z testami w `test/`. Ten dokument zapisuje pierwotne
+> ustalenia; tam, gdzie kod się od niego różni, rozstrzyga kod i `DESIGN.md`.
+
 Dokument dla wykonawcy (człowieka lub modelu), który nie zna wcześniejszych ustaleń.
 Uzasadnienia decyzji są w [DESIGN.md](DESIGN.md) — przeczytaj go najpierw, zwłaszcza §1 i §3.
 
@@ -576,7 +580,7 @@ npx wrangler d1 migrations apply sprzatanie --remote
 ```
 
 ```bash
-node scripts/gen-vapid.js
+npm run gen:vapid
 ```
 
 Klucz publiczny wpisz do `vars.VAPID_PUBLIC_KEY`. Prywatny podaj jako sekret:
@@ -586,7 +590,7 @@ npx wrangler secret put VAPID_PRIVATE_KEY
 ```
 
 ```bash
-node scripts/gen-flat-code.js
+npm run gen:code
 ```
 
 ```bash
