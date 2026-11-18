@@ -3,20 +3,32 @@
 PWA dla mieszkania: czyta grafik sprzątania z arkusza Excel i przypomina powiadomieniami push,
 kto co ma w tym tygodniu do zrobienia. Działa na darmowym planie Cloudflare Workers.
 
-**Stan:** projekt i plan są gotowe; zaimplementowane i przetestowane są moduły bazowe
-(pobieranie i parsowanie arkusza, Web Push sprawdzony względem implementacji referencyjnej, czas lokalny). Aplikacja jeszcze nie istnieje.
+- [docs/DESIGN.md](docs/DESIGN.md) — wymagania i decyzje projektowe
+- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) — pierwotny plan, kontrakt API, kroki wdrożenia
 
-- [docs/DESIGN.md](docs/DESIGN.md) — wymagania, decyzje projektowe i ich uzasadnienie
-- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) — plan implementacji krok po kroku
+## Uruchomienie lokalne
 
-## Testy
-
-Wymaga Node 22.13 lub nowszego.
+Wymaga Node 22.18 lub nowszego.
 
 ```bash
 npm ci
 ```
 
 ```bash
-npm test
+npm run build && npm run dev
 ```
+
+Potem otwórz <http://localhost:8787/?code=dev>. Serwer podglądu używa prawdziwych handlerów API,
+bazy w pamięci i testowego arkusza ze zmyślonymi imionami; powiadomienia tylko loguje.
+Zmienna `DEV_NOW=2026-11-11T12:00:00Z` ustala datę.
+
+## Testy
+
+```bash
+npm test && npm run typecheck
+```
+
+## Wdrożenie
+
+Kroki są w [docs/IMPLEMENTATION_PLAN.md §9](docs/IMPLEMENTATION_PLAN.md); `npm run deploy`
+buduje aplikację i wdraża ją razem z Workerem.

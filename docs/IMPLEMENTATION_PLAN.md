@@ -1,7 +1,8 @@
 # Plan implementacji
 
-> **Stan (listopad 2026):** serwer (M1, M4, M5 po stronie API) jest zaimplementowany
-> w TypeScript w `src/worker/`, z testami w `test/`. Ten dokument zapisuje pierwotne
+> **Stan (listopad 2026):** M1–M5 są zaimplementowane w TypeScript: serwer
+> w `src/worker/`, aplikacja webowa w `src/web/` (Tailwind CSS zamiast Bootstrapa;
+> sekcje o wyglądzie i o `public/vendor/` są nieaktualne), service worker w `src/sw/`. Ten dokument zapisuje pierwotne
 > ustalenia; tam, gdzie kod się od niego różni, rozstrzyga kod i `DESIGN.md`.
 
 Dokument dla wykonawcy (człowieka lub modelu), który nie zna wcześniejszych ustaleń.
